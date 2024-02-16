@@ -49,8 +49,6 @@ class Compiler {
 
     let splitBySum = inputWithoutSpaces.components(separatedBy: "+")
     let splitBySub = inputWithoutSpaces.components(separatedBy: "-")
-    print(splitBySum)
-    print(splitBySub)
     if splitBySum == ["", ""] || splitBySub == ["", ""] {
       throw CompilerError.MissingAtLeast2Numbers
     }
