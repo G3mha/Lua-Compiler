@@ -17,7 +17,7 @@ class Compiler {
   }
 
   static func run() {
-    let inputString = CommandLine.arguments[1]
+    let inputString = CommandLine.arguments[1].replacingOccurrences(of: " ", with: "")
     do {
       let result = try sumSub(inputWithoutSpaces: inputString)
       print(result)
@@ -49,7 +49,8 @@ class Compiler {
 
     let splitBySum = inputWithoutSpaces.components(separatedBy: "+")
     let splitBySub = inputWithoutSpaces.components(separatedBy: "-")
-    
+    print(splitBySum)
+    print(splitBySub)
     if splitBySum == ["", ""] || splitBySub == ["", ""] {
       throw CompilerError.MissingAtLeast2Numbers
     }
