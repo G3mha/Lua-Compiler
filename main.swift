@@ -1,6 +1,5 @@
 import Foundation
 
-
 class Compiler {
   enum CompilerError: Error {
       case NoInput
@@ -11,25 +10,31 @@ class Compiler {
       case NegativeResult(result: Int)
   }
 
+  // function that writes to stderr a received string and exits with error
+  static func writeStderrAndExit(_ message: String) {
+    fputs("ERROR: \(message)\n", stderr) // print to stderr
+    exit(1) // exit with error
+  }
+
   static func run() {
-    let inputString = CommandLine.arguments[1...].joined(separator: "")
+    let inputString = CommandLine.arguments[1]
     do {
       let result = try sumSub(inputWithoutSpaces: inputString)
       print(result)
     } catch CompilerError.NoInput {
-      print("ERROR: No input")
+      writeStderrAndExit("No input")
     } catch CompilerError.NoOperators {
-      print("ERROR: No operators found")
+      writeStderrAndExit("No operators found")
     } catch CompilerError.MissingAtLeast2Numbers {
-      print("ERROR: Missing at least 2 numbers")
+      writeStderrAndExit("Missing at least 2 numbers")
     } catch CompilerError.MissingAtLeast1Number {
-      print("ERROR: Missing at least 1 number")
+      writeStderrAndExit("Missing at least 1 numbers")
     } catch CompilerError.TwoConsecutiveOperators {
-      print("ERROR: Two consecutive operators")
+      writeStderrAndExit("Two consecutive operators")
     } catch CompilerError.NegativeResult(let result) {
-      print("ERROR: Negative result: \(result)")
+      writeStderrAndExit("Negative result: \(result)")
     } catch {
-      print("ERROR: An error occurred")
+      writeStderrAndExit("An error occurred")
     }
   }
   
