@@ -91,6 +91,15 @@ class Parser {
   }
 
   func run(code: String) -> Void {
+    // check if there's any PLUS or MINUS in the `code`
+    if !code.contains("+") && !code.contains("-") {
+      // split `code` by spaces and check how many elements there are
+      let splitCode = code.split(separator: " ")
+      // if `splitCode.count` is not 1, then there's an error
+      if splitCode.count != 1 {
+        writeStderrAndExit("No operators")
+      }
+    }
     let cleanCode = code.replacingOccurrences(of: " ", with: "")
     self.tokenizer = Tokenizer(source: cleanCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
@@ -102,6 +111,9 @@ class Parser {
     }
     let endOfParsing = parseExpression()
     if tokenizer.next.type == "EOF" {
+      if endOfParsing < 0 {
+        writeStderrAndExit("Negative result")
+      }
       print(endOfParsing)
     } else {
       writeStderrAndExit("Syntax Error")
