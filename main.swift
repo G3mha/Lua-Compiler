@@ -1,87 +1,114 @@
 import Foundation
 
-class Compiler {
-  enum CompilerError: Error {
-      case NoInput
-      case NoOperators
-      case MissingAtLeast2Numbers
-      case MissingAtLeast1Number
-      case TwoConsecutiveOperators
-      case NegativeResult(result: Int)
-  }
+// function that writes to stderr a received string and exits with error
+func writeStderrAndExit(_ message: String) {
+  fputs("ERROR: \(message)\n", stderr) // print to stderr
+  exit(1) // exit with error
+}
 
-  // function that writes to stderr a received string and exits with error
-  static func writeStderrAndExit(_ message: String) {
-    fputs("ERROR: \(message)\n", stderr) // print to stderr
-    exit(1) // exit with error
-  }
+class Token {
+  var type: String
+  var value: Int
 
-  static func run() {
-    let inputString = CommandLine.arguments[1].replacingOccurrences(of: " ", with: "")
-    do {
-      let result = try sumSub(inputWithoutSpaces: inputString)
-      print(result)
-    } catch CompilerError.NoInput {
-      writeStderrAndExit("No input")
-    } catch CompilerError.NoOperators {
-      writeStderrAndExit("No operators found")
-    } catch CompilerError.MissingAtLeast2Numbers {
-      writeStderrAndExit("Missing at least 2 numbers")
-    } catch CompilerError.MissingAtLeast1Number {
-      writeStderrAndExit("Missing at least 1 numbers")
-    } catch CompilerError.TwoConsecutiveOperators {
-      writeStderrAndExit("Two consecutive operators")
-    } catch CompilerError.NegativeResult(let result) {
-      writeStderrAndExit("Negative result: \(result)")
-    } catch {
-      writeStderrAndExit("An error occurred")
-    }
-  }
-  
-  static func sumSub(inputWithoutSpaces: String) throws -> Int {
-    if inputWithoutSpaces.isEmpty {
-      throw CompilerError.NoInput
-    }
-
-    if inputWithoutSpaces.contains("++") || inputWithoutSpaces.contains("--") || inputWithoutSpaces.contains("+-") || inputWithoutSpaces.contains("-+") {
-      throw CompilerError.TwoConsecutiveOperators
-    }
-
-    let splitBySum = inputWithoutSpaces.components(separatedBy: "+")
-    let splitBySub = inputWithoutSpaces.components(separatedBy: "-")
-    if splitBySum == ["", ""] || splitBySub == ["", ""] {
-      throw CompilerError.MissingAtLeast2Numbers
-    }
-
-    // if list length is 2 and one of the items is empty
-    if (splitBySum.count == 2 || splitBySub.count == 2) && (splitBySum.contains("") || splitBySub.contains("")) {
-      throw CompilerError.MissingAtLeast1Number
-    }
-    if splitBySum.count == 1 && splitBySub.count == 1 {
-        throw CompilerError.NoOperators
-    }
-
-    var result = 0
-    for sum in splitBySum {
-      let sub = sum.components(separatedBy: "-")
-      if sub.count > 1 {
-        for (index, number) in sub.enumerated() {
-          if index == 0 {
-            result += Int(number) ?? 0
-          } else {
-            result -= Int(number) ?? 0
-          }
-        }
-      } else {
-        result += Int(sum) ?? 0
-      }
-    }
-    if result < 0 {
-      throw CompilerError.NegativeResult(result: result)
-    }
-    return result
+  init(type: String, value: Int) {
+    self.type = type
+    self.value = value
   }
 }
 
-// Run the compiler
-Compiler.run()
+class Tokenizer {
+  var source: String
+  var position: Int
+  var next: Token
+
+  init(source: String) {
+    self.source = source
+    self.position = 0
+    self.next = Token(type: "", value: 0)
+  }
+
+  func selectNext() -> Void {
+    if position < source.count {
+      let char = source[source.index(source.startIndex, offsetBy: position)]
+      if char == "+" || char == "-" {
+        if self.next.type == "PLUS" || self.next.type == "MINUS" {
+          writeStderrAndExit("Double operators")
+        }
+      }
+      if char == "+" {
+        self.next = Token(type: "PLUS", value: 0)
+      } else if char == "-" {
+        self.next = Token(type: "MINUS", value: 0)
+      } else if char.isNumber {
+        var numberString = String(char)
+        var nextPosition = position + 1
+        while nextPosition < source.count {
+          let nextChar = source[source.index(source.startIndex, offsetBy: nextPosition)]
+          if nextChar.isNumber {
+            numberString += String(nextChar)
+            nextPosition += 1
+          } else {
+            break
+          }
+        }
+        self.next = Token(type: "NUMBER", value: Int(numberString) ?? 0)
+        position = nextPosition - 1
+      }
+      position += 1
+    } else {
+      if self.next.type == "PLUS" || self.next.type == "MINUS" {
+        writeStderrAndExit("Last value missing")
+      }
+      self.next = Token(type: "EOF", value: 0)
+    }
+  }
+}
+
+class Parser {
+  var tokenizer: Tokenizer
+
+  init() {
+    self.tokenizer = Tokenizer(source: "")
+  }
+
+  func parseExpression() -> Int {
+    var result = 0
+    if tokenizer.next.type == "NUMBER" {
+      result = tokenizer.next.value
+      tokenizer.selectNext()
+    }
+    while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+      if tokenizer.next.type == "PLUS" {
+        tokenizer.selectNext()
+        result += tokenizer.next.value
+      } else if tokenizer.next.type == "MINUS" {
+        tokenizer.selectNext()
+        result -= tokenizer.next.value
+      }
+      tokenizer.selectNext()
+    }
+    return result
+  }
+
+  func run(code: String) -> Void {
+    let cleanCode = code.replacingOccurrences(of: " ", with: "")
+    self.tokenizer = Tokenizer(source: cleanCode)
+    tokenizer.selectNext() // Position the tokenizer to the first token
+    if tokenizer.next.type == "EOF" {
+      writeStderrAndExit("Empty input")
+    }
+    if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+      writeStderrAndExit("First value missing")
+    }
+    let endOfParsing = parseExpression()
+    if tokenizer.next.type == "EOF" {
+      print(endOfParsing)
+    } else {
+      writeStderrAndExit("Syntax Error")
+    }
+  }
+}
+
+let myParser = Parser()
+// Run the Parser
+myParser.run(code: CommandLine.arguments[1])
