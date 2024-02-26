@@ -84,6 +84,10 @@ class Parser {
       if splitCode.count != 1 {
         writeStderrAndExit("No operators")
       }
+      // check for chars that are unwanted, like ',' or '.'
+      if code.contains(",") || code.contains(".") {
+        writeStderrAndExit("Invalid character")
+      }
     }
     let cleanCode = code.replacingOccurrences(of: " ", with: "")
     self.tokenizer = Tokenizer(source: cleanCode)
