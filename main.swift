@@ -30,8 +30,8 @@ class Tokenizer {
   func selectNext() -> Void {
     if position < source.count {
       let char = source[source.index(source.startIndex, offsetBy: position)]
-      if char == "+" || char == "-" {
-        if self.next.type == "PLUS" || self.next.type == "MINUS" {
+      if char == "+" || char == "-" || char == "*" || char == "/" {
+        if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "MUL" || self.next.type == "DIV" {
           writeStderrAndExit("Double operators")
         }
       }
@@ -39,6 +39,10 @@ class Tokenizer {
         self.next = Token(type: "PLUS", value: 0)
       } else if char == "-" {
         self.next = Token(type: "MINUS", value: 0)
+      } else if char == "*" {
+        self.next = Token(type: "MUL", value: 0)
+      } else if char == "/" {
+        self.next = Token(type: "DIV", value: 0)
       } else if char.isNumber {
         var numberString = String(char)
         var nextPosition = position + 1
@@ -56,7 +60,7 @@ class Tokenizer {
       }
       position += 1
     } else {
-      if self.next.type == "PLUS" || self.next.type == "MINUS" {
+      if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "DIV" || self.next.type == "MUL" {
         writeStderrAndExit("Last value missing")
       }
       self.next = Token(type: "EOF", value: 0)
@@ -71,28 +75,9 @@ class Parser {
     self.tokenizer = Tokenizer(source: "")
   }
 
-  func parseExpression() -> Int {
-    var result = 0
-    if tokenizer.next.type == "NUMBER" {
-      result = tokenizer.next.value
-      tokenizer.selectNext()
-    }
-    while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
-      if tokenizer.next.type == "PLUS" {
-        tokenizer.selectNext()
-        result += tokenizer.next.value
-      } else if tokenizer.next.type == "MINUS" {
-        tokenizer.selectNext()
-        result -= tokenizer.next.value
-      }
-      tokenizer.selectNext()
-    }
-    return result
-  }
-
   func run(code: String) -> Void {
-    // check if there's any PLUS or MINUS in the `code`
-    if !code.contains("+") && !code.contains("-") {
+    // check if there's any PLUS, MINUS, DIV or MUL in the `code`
+    if !code.contains("+") && !code.contains("-") && !code.contains("*") && !code.contains("/") {
       // split `code` by spaces and check how many elements there are
       let splitCode = code.split(separator: " ")
       // if `splitCode.count` is not 1, then there's an error
@@ -106,20 +91,52 @@ class Parser {
     if tokenizer.next.type == "EOF" {
       writeStderrAndExit("Empty input")
     }
-    if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+    if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL"{
       writeStderrAndExit("First value missing")
     }
     let endOfParsing = parseExpression()
+    print(endOfParsing)
     if tokenizer.next.type == "EOF" {
       if endOfParsing < 0 {
         writeStderrAndExit("Negative result")
       }
-      print(endOfParsing)
-    } else {
-      writeStderrAndExit("Syntax Error")
     }
   }
+
+  func parseTerm() -> Int {
+    var result = 0
+    if tokenizer.next.type == "NUMBER" {
+      result = tokenizer.next.value
+      tokenizer.selectNext()
+    }
+    while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
+      if tokenizer.next.type == "MUL" {
+        tokenizer.selectNext()
+        result *= tokenizer.next.value
+      } else if tokenizer.next.type == "DIV" {
+        tokenizer.selectNext()
+        result /= tokenizer.next.value
+      }
+      tokenizer.selectNext()
+    }
+    return result
+  }
+
+  func parseExpression() -> Int {
+    var result = parseTerm()
+    while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+      if tokenizer.next.type == "PLUS" {
+        tokenizer.selectNext()
+        result += parseTerm()
+      } else if tokenizer.next.type == "MINUS" {
+        tokenizer.selectNext()
+        result -= parseTerm()
+      }
+    }
+    return result
+  }
 }
+
 
 let myParser = Parser()
 // Run the Parser
