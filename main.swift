@@ -127,10 +127,10 @@ class Parser {
       tokenizer.selectNext()
     } else if tokenizer.next.type == "PLUS" {
       tokenizer.selectNext()
-      result += parseFactor()
+      result = parseFactor()
     } else if tokenizer.next.type == "MINUS" {
       tokenizer.selectNext()
-      result -= parseFactor()
+      result = -parseFactor()
     } else if tokenizer.next.type == "LPAREN" {
       tokenizer.selectNext()
       result = parseExpression()
