@@ -2,7 +2,7 @@
 
 ## Compiler Sintatic Diagram
 
-![Diagrama sintático](diagrama_sintatico.png)
+![Sintatic Diagram](./sintatic_diagram.png)
 
 ## EBNF
 
