@@ -171,14 +171,8 @@ class Parser {
         tokenizer.selectNext()
         result += parseTerm()
       } else if tokenizer.next.type == "MINUS" {
-        if tokenizer.next.type == "PLUS" { // Check next token directly, not next.next
-          tokenizer.selectNext()
-          tokenizer.selectNext()
-          result -= parseTerm()
-        } else {
-          tokenizer.selectNext()
-          result -= parseTerm()
-        }
+        tokenizer.selectNext()
+        result -= parseTerm()
       }
     }
     return result
