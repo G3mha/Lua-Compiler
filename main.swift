@@ -2,7 +2,7 @@ import Foundation
 
 // function that writes to stderr a received string and exits with error
 func writeStderrAndExit(_ message: String) {
-  fputs("ERROR: \(message)\n", stderr) // print to stderr
+  fputs("ERROR: \(message)\n", stderr) // write to stderr
   exit(1) // exit with error
 }
 
@@ -74,7 +74,6 @@ class Tokenizer {
       }
       self.next = Token(type: "EOF", value: 0)
     }
-    print(self.next.type, self.next.value)
   }
 }
 
