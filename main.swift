@@ -104,19 +104,20 @@ class Parser {
     if tokenizer.next.type == "EOF" {
       writeStderrAndExit("Empty input")
     }
-    if tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL"{
+    if tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL" {
       writeStderrAndExit("First value missing")
     }
     if tokenizer.next.type == "RPAREN" {
       writeStderrAndExit("No opening parenthesis")
     }
     let endOfParsing = parseExpression()
-    print(endOfParsing)
-    if tokenizer.next.type == "EOF" {
-      if endOfParsing < 0 {
-        writeStderrAndExit("Negative result")
-      }
+    if tokenizer.next.type != "EOF" {
+      writeStderrAndExit("Not all tokens were consumed")
     }
+    else if endOfParsing < 0 {
+      writeStderrAndExit("Negative result")
+    }
+    print(endOfParsing)
   }
 
   func parseFactor() -> Int {
@@ -173,8 +174,14 @@ class Parser {
         tokenizer.selectNext()
         result += parseTerm()
       } else if tokenizer.next.type == "MINUS" {
-        tokenizer.selectNext()
-        result -= parseTerm()
+        if tokenizer.next.type == "PLUS" { // Check next token directly, not next.next
+          tokenizer.selectNext()
+          tokenizer.selectNext()
+          result -= parseTerm()
+        } else {
+          tokenizer.selectNext()
+          result -= parseTerm()
+        }
       }
     }
     return result
