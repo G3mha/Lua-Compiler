@@ -114,9 +114,6 @@ class Parser {
     if tokenizer.next.type != "EOF" {
       writeStderrAndExit("Not all tokens were consumed")
     }
-    else if endOfParsing < 0 {
-      writeStderrAndExit("Negative result")
-    }
     print(endOfParsing)
   }
 
