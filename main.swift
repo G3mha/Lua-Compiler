@@ -145,21 +145,19 @@ class Parser {
 
   func parseTerm() -> Int {
     var result = parseFactor()
-    while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" || tokenizer.next.type == "LPAREN" {
-      if tokenizer.next.type == "MUL" {
-        tokenizer.selectNext()
-        result *= parseTerm()
-      } else if tokenizer.next.type == "DIV" {
-        tokenizer.selectNext()
-        result /= parseTerm()
-      } else if tokenizer.next.type == "LPAREN" {
-        tokenizer.selectNext()
-        result = parseExpression()
-        if tokenizer.next.type != "RPAREN" {
-          writeStderrAndExit("Missing closing parenthesis")
-        }
-        tokenizer.selectNext()
+    if tokenizer.next.type == "MUL" {
+      tokenizer.selectNext()
+      result *= parseTerm()
+    } else if tokenizer.next.type == "DIV" {
+      tokenizer.selectNext()
+      result /= parseTerm()
+    } else if tokenizer.next.type == "LPAREN" {
+      tokenizer.selectNext()
+      result = parseExpression()
+      if tokenizer.next.type != "RPAREN" {
+        writeStderrAndExit("Missing closing parenthesis")
       }
+      tokenizer.selectNext()
     }
     return result
   }
