@@ -30,8 +30,13 @@ class Tokenizer {
   func selectNext() -> Void {
     if position < source.count {
       let char = source[source.index(source.startIndex, offsetBy: position)]
-      if char == "+" || char == "-" || char == "*" || char == "/" {
+      if char == "*" || char == "/" {
         if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "MUL" || self.next.type == "DIV" {
+          writeStderrAndExit("Double operators")
+        }
+      }
+      if char == "+" || char == "-" {
+        if self.next.type == "MUL" || self.next.type == "DIV" {
           writeStderrAndExit("Double operators")
         }
       }
@@ -43,6 +48,10 @@ class Tokenizer {
         self.next = Token(type: "MUL", value: 0)
       } else if char == "/" {
         self.next = Token(type: "DIV", value: 0)
+      } else if char == "(" {
+        self.next = Token(type: "LPAREN", value: 0)
+      } else if char == ")" {
+        self.next = Token(type: "RPAREN", value: 0)
       } else if char.isNumber {
         var numberString = String(char)
         var nextPosition = position + 1
@@ -60,7 +69,7 @@ class Tokenizer {
       }
       position += 1
     } else {
-      if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "DIV" || self.next.type == "MUL" {
+      if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "DIV" || self.next.type == "MUL" || self.next.type == "LPAREN" {
         writeStderrAndExit("Last value missing")
       }
       self.next = Token(type: "EOF", value: 0)
@@ -95,8 +104,11 @@ class Parser {
     if tokenizer.next.type == "EOF" {
       writeStderrAndExit("Empty input")
     }
-    if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL"{
+    if tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL"{
       writeStderrAndExit("First value missing")
+    }
+    if tokenizer.next.type == "RPAREN" {
+      writeStderrAndExit("No opening parenthesis")
     }
     let endOfParsing = parseExpression()
     print(endOfParsing)
@@ -107,21 +119,49 @@ class Parser {
     }
   }
 
-  func parseTerm() -> Int {
+  func parseFactor() -> Int {
     var result = 0
     if tokenizer.next.type == "NUMBER" {
       result = tokenizer.next.value
       tokenizer.selectNext()
-    }
-    while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
-      if tokenizer.next.type == "MUL" {
-        tokenizer.selectNext()
-        result *= tokenizer.next.value
-      } else if tokenizer.next.type == "DIV" {
-        tokenizer.selectNext()
-        result /= tokenizer.next.value
+    } else if tokenizer.next.type == "PLUS" {
+      tokenizer.selectNext()
+      result += parseFactor()
+    } else if tokenizer.next.type == "MINUS" {
+      tokenizer.selectNext()
+      result -= parseFactor()
+    } else if tokenizer.next.type == "LPAREN" {
+      tokenizer.selectNext()
+      result = parseExpression()
+      if tokenizer.next.type != "RPAREN" {
+        writeStderrAndExit("Missing closing parenthesis")
       }
       tokenizer.selectNext()
+    } else if tokenizer.next.type == "EOF" {
+      writeStderrAndExit("Last value missing")
+    } else {
+      writeStderrAndExit("Invalid input")
+    }
+    return result
+  }
+
+  func parseTerm() -> Int {
+    var result = parseFactor()
+    while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" || tokenizer.next.type == "LPAREN" {
+      if tokenizer.next.type == "MUL" {
+        tokenizer.selectNext()
+        result *= parseTerm()
+      } else if tokenizer.next.type == "DIV" {
+        tokenizer.selectNext()
+        result /= parseTerm()
+      } else if tokenizer.next.type == "LPAREN" {
+        tokenizer.selectNext()
+        result = parseExpression()
+        if tokenizer.next.type != "RPAREN" {
+          writeStderrAndExit("Missing closing parenthesis")
+        }
+        tokenizer.selectNext()
+      }
     }
     return result
   }
