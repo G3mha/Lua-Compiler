@@ -74,6 +74,7 @@ class Tokenizer {
       }
       self.next = Token(type: "EOF", value: 0)
     }
+    print(self.next.type, self.next.value)
   }
 }
 
@@ -145,19 +146,14 @@ class Parser {
 
   func parseTerm() -> Int {
     var result = parseFactor()
-    if tokenizer.next.type == "MUL" {
-      tokenizer.selectNext()
-      result *= parseTerm()
-    } else if tokenizer.next.type == "DIV" {
-      tokenizer.selectNext()
-      result /= parseTerm()
-    } else if tokenizer.next.type == "LPAREN" {
-      tokenizer.selectNext()
-      result = parseExpression()
-      if tokenizer.next.type != "RPAREN" {
-        writeStderrAndExit("Missing closing parenthesis")
+    while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
+      if tokenizer.next.type == "MUL" {
+        tokenizer.selectNext()
+        result *= parseFactor()
+      } else if tokenizer.next.type == "DIV" {
+        tokenizer.selectNext()
+        result /= parseFactor()
       }
-      tokenizer.selectNext()
     }
     return result
   }
