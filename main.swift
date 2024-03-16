@@ -45,6 +45,13 @@ class PrePro {
   }
 }
 
+protocol Node {
+  var value: String { get set }
+  var children: [Node] { get set }
+  func evaluate() -> Int
+}
+
+
 class Token {
   var type: String
   var value: Int
@@ -133,7 +140,7 @@ class Parser {
       writeStderrAndExit("Empty input")
     }
     if tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL" {
-      writeStderrAndExit("First value missing")
+      writeStderrAndExit("First number missing")
     }
     if tokenizer.next.type == "RPAREN" {
       writeStderrAndExit("Missing opening parenthesis")
