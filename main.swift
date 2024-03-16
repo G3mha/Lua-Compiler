@@ -51,6 +51,79 @@ protocol Node {
   func evaluate() -> Int
 }
 
+class BinOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() -> Int {
+    if self.value == "+" {
+      return self.children[0].evaluate() + self.children[1].evaluate()
+    } else if self.value == "-" {
+      return self.children[0].evaluate() - self.children[1].evaluate()
+    } else if self.value == "*" {
+      return self.children[0].evaluate() * self.children[1].evaluate()
+    } else if self.value == "/" {
+      return self.children[0].evaluate() / self.children[1].evaluate()
+    }
+    return 0
+  }
+}
+
+class UnOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() -> Int {
+    if self.value == "+" {
+      return self.children[0].evaluate()
+    } else if self.value == "-" {
+      return -self.children[0].evaluate()
+    }
+    return 0
+  }
+}
+
+class IntVal: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() -> Int {
+    let intValue = Int(self.value) ?? -1
+    if intValue == -1 {
+      writeStderrAndExit("IntVal could not cast String to Int")
+    }
+    return intValue
+  }
+}
+
+class NoOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() -> Int {
+    return 0
+  }
+}
 
 class Token {
   var type: String
