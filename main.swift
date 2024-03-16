@@ -6,6 +6,45 @@ func writeStderrAndExit(_ message: String) {
   exit(1) // exit with error
 }
 
+class PrePro {
+  static private func remove_spaces(code: String) -> String {
+    for i in 0..<code.count {
+      let char = code[code.index(code.startIndex, offsetBy: i)]
+      if char == " " {
+        var j = i
+        while j >= 0 && code[code.index(code.startIndex, offsetBy: j)] == " " {
+          j -= 1
+        }
+        let charJ = code[code.index(code.startIndex, offsetBy: j)]
+
+        var k = i
+        while k < code.count && code[code.index(code.startIndex, offsetBy: k)] == " " {
+          k += 1
+        }
+        let charK = code[code.index(code.startIndex, offsetBy: k)]
+
+        if charJ.isNumber && charK.isNumber {
+          writeStderrAndExit("Missing operator")
+        }
+      }
+    }
+    return code.replacingOccurrences(of: " ", with: "")
+  }
+
+  static public func filter(code: String) -> String {
+    let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+    var processedCode = ""
+    if trimmedCode.contains("--") {
+      // split the string by "--" and get the first element
+      processedCode = String(trimmedCode.split(separator: "--")[0])
+    } else {
+      processedCode = String(trimmedCode)
+    }
+    processedCode = remove_spaces(code: processedCode)
+    return processedCode
+  }
+}
+
 class Token {
   var type: String
   var value: Int
@@ -66,6 +105,8 @@ class Tokenizer {
         }
         self.next = Token(type: "NUMBER", value: Int(numberString) ?? 0)
         position = nextPosition - 1
+      } else {
+        writeStderrAndExit("Invalid character")
       }
       position += 1
     } else {
@@ -85,21 +126,8 @@ class Parser {
   }
 
   func run(code: String) -> Void {
-    // check if there's any PLUS, MINUS, DIV or MUL in the `code`
-    if !code.contains("+") && !code.contains("-") && !code.contains("*") && !code.contains("/") {
-      // split `code` by spaces and check how many elements there are
-      let splitCode = code.split(separator: " ")
-      // if `splitCode.count` is not 1, then there's an error
-      if splitCode.count != 1 {
-        writeStderrAndExit("No operators")
-      }
-      // check for chars that are unwanted, like ',' or '.'
-      if code.contains(",") || code.contains(".") {
-        writeStderrAndExit("Invalid character")
-      }
-    }
-    let cleanCode = code.replacingOccurrences(of: " ", with: "")
-    self.tokenizer = Tokenizer(source: cleanCode)
+    let filteredCode = PrePro.filter(code: code)
+    self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
     if tokenizer.next.type == "EOF" {
       writeStderrAndExit("Empty input")
@@ -108,7 +136,7 @@ class Parser {
       writeStderrAndExit("First value missing")
     }
     if tokenizer.next.type == "RPAREN" {
-      writeStderrAndExit("No opening parenthesis")
+      writeStderrAndExit("Missing opening parenthesis")
     }
     let endOfParsing = parseExpression()
     if tokenizer.next.type != "EOF" {
@@ -174,5 +202,4 @@ class Parser {
 
 
 let myParser = Parser()
-// Run the Parser
 myParser.run(code: CommandLine.arguments[1])
