@@ -277,7 +277,22 @@ class Parser {
   }
 }
 
-let myParser = Parser()
-let ast = myParser.run(code: CommandLine.arguments[1])
-let result = ast.evaluate()
-print(result)
+func readFile(_ path: String) -> String? {
+  do {
+    let contents = try String(contentsOfFile: path, encoding: .utf8)
+    return contents
+  } catch {
+    print("Error reading file: \(error)")
+    return nil
+  }
+}
+
+let filePath = CommandLine.arguments[1]
+if let fileContents = readFile(filePath) {
+  let myParser = Parser()
+  let ast = myParser.run(code: fileContents)
+  let result = ast.evaluate()
+  print(result)
+} else {
+  writeStderrAndExit("Failed to read file")
+}
