@@ -190,9 +190,6 @@ class Tokenizer {
       }
       position += 1
     } else {
-      if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "DIV" || self.next.type == "MUL" || self.next.type == "LPAREN" {
-        writeStderrAndExit("Last value missing")
-      }
       self.next = Token(type: "EOF", value: 0)
     }
   }
@@ -205,7 +202,7 @@ class Parser {
     self.tokenizer = Tokenizer(source: "")
   }
 
-  func run(code: String) -> Void {
+  public func run(code: String) -> Node {
     let filteredCode = PrePro.filter(code: code)
     self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
@@ -222,20 +219,20 @@ class Parser {
     if tokenizer.next.type != "EOF" {
       writeStderrAndExit("Not all tokens were consumed")
     }
-    print(endOfParsing)
+    return endOfParsing
   }
 
-  func parseFactor() -> Int {
-    var result = 0
+  private func parseFactor() -> Node {
+    var result: Node = NoOp(value: "", children: [])
     if tokenizer.next.type == "NUMBER" {
-      result = tokenizer.next.value
+      result = IntVal(value: String(tokenizer.next.value), children: [])
       tokenizer.selectNext()
     } else if tokenizer.next.type == "PLUS" {
       tokenizer.selectNext()
-      result = parseFactor()
+      result = UnOp(value: "+", children: [parseFactor()])
     } else if tokenizer.next.type == "MINUS" {
       tokenizer.selectNext()
-      result = -parseFactor()
+      result = UnOp(value: "-", children: [parseFactor()])
     } else if tokenizer.next.type == "LPAREN" {
       tokenizer.selectNext()
       result = parseExpression()
@@ -251,35 +248,36 @@ class Parser {
     return result
   }
 
-  func parseTerm() -> Int {
+  private func parseTerm() -> Node {
     var result = parseFactor()
     while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
       if tokenizer.next.type == "MUL" {
         tokenizer.selectNext()
-        result *= parseFactor()
+        result = BinOp(value: "*", children: [result, parseFactor()])
       } else if tokenizer.next.type == "DIV" {
         tokenizer.selectNext()
-        result /= parseFactor()
+        result = BinOp(value: "/", children: [result, parseFactor()])
       }
     }
     return result
   }
 
-  func parseExpression() -> Int {
+  private func parseExpression() -> Node {
     var result = parseTerm()
     while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
       if tokenizer.next.type == "PLUS" {
         tokenizer.selectNext()
-        result += parseTerm()
+        result = BinOp(value: "+", children: [result, parseTerm()])
       } else if tokenizer.next.type == "MINUS" {
         tokenizer.selectNext()
-        result -= parseTerm()
+        result = BinOp(value: "-", children: [result, parseTerm()])
       }
     }
     return result
   }
 }
 
-
 let myParser = Parser()
-myParser.run(code: CommandLine.arguments[1])
+let ast = myParser.run(code: CommandLine.arguments[1])
+let result = ast.evaluate()
+print(result)
