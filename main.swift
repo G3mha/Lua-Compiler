@@ -16,7 +16,6 @@ class PrePro {
           j -= 1
         }
         let charJ = code[code.index(code.startIndex, offsetBy: j)]
-
         var k = i
         while k < code.count && code[code.index(code.startIndex, offsetBy: k)] == " " {
           k += 1
@@ -32,16 +31,16 @@ class PrePro {
   }
 
   static public func filter(code: String) -> String {
-    let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
     var processedCode = ""
-    if trimmedCode.contains("--") {
+    if code.contains("--") {
       // split the string by "--" and get the first element
-      processedCode = String(trimmedCode.split(separator: "--")[0])
+      processedCode = String(code.split(separator: "--")[0])
     } else {
-      processedCode = String(trimmedCode)
+      processedCode = String(code)
     }
-    processedCode = remove_spaces(code: processedCode)
+    processedCode = processedCode.trimmingCharacters(in: .whitespacesAndNewlines)
     processedCode = processedCode.replacingOccurrences(of: "\n", with: "")
+    processedCode = remove_spaces(code: processedCode)
     return processedCode
   }
 }
