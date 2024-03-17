@@ -41,6 +41,7 @@ class PrePro {
       processedCode = String(trimmedCode)
     }
     processedCode = remove_spaces(code: processedCode)
+    processedCode = processedCode.replacingOccurrences(of: "\n", with: "")
     return processedCode
   }
 }
@@ -277,22 +278,18 @@ class Parser {
   }
 }
 
-func readFile(_ path: String) -> String? {
+func readFile(_ path: String) -> String {
   do {
     let contents = try String(contentsOfFile: path, encoding: .utf8)
     return contents
   } catch {
-    print("Error reading file: \(error)")
-    return nil
+    writeStderrAndExit("Failed to read file")
+    return "Error"
   }
 }
 
-let filePath = CommandLine.arguments[1]
-if let fileContents = readFile(filePath) {
-  let myParser = Parser()
-  let ast = myParser.run(code: fileContents)
-  let result = ast.evaluate()
-  print(result)
-} else {
-  writeStderrAndExit("Failed to read file")
-}
+let fileContent = readFile(CommandLine.arguments[1])
+let myParser = Parser()
+let ast = myParser.run(code: fileContent)
+let result = ast.evaluate()
+print(result)
