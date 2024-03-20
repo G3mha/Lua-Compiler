@@ -138,7 +138,7 @@ class SymbolTable {
       writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
       return 0
     }
-    return variables[variable]
+    return variables[variable]!
   }
 }
 
