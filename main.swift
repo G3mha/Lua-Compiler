@@ -125,6 +125,23 @@ class NoOp: Node {
   }
 }
 
+class SymbolTable {
+  private var variables: [String: Int] = [:]
+
+  func setValue(_ variable: String, _ value: Int) {
+    variables[variable] = value
+  }
+
+  func getValue(_ variable: String) -> Int {
+    // if variable is not in the dictionary, return 0
+    if variables[variable] == nil {
+      writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
+      return 0
+    }
+    return variables[variable]
+  }
+}
+
 class Token {
   var type: String
   var value: Int
