@@ -7,40 +7,18 @@ func writeStderrAndExit(_ message: String) {
 }
 
 class PrePro {
-  static private func remove_spaces(code: String) -> String {
-    for i in 0..<code.count {
-      let char = code[code.index(code.startIndex, offsetBy: i)]
-      if char == " " {
-        var j = i
-        while j >= 0 && code[code.index(code.startIndex, offsetBy: j)] == " " {
-          j -= 1
-        }
-        let charJ = code[code.index(code.startIndex, offsetBy: j)]
-        var k = i
-        while k < code.count && code[code.index(code.startIndex, offsetBy: k)] == " " {
-          k += 1
-        }
-        let charK = code[code.index(code.startIndex, offsetBy: k)]
-
-        if charJ.isNumber && charK.isNumber {
-          writeStderrAndExit("Missing operator")
-        }
+  static public func filter(code: String) -> String {
+    let splittedCode = code.split(separator: "\n")
+    var processedCode = ""
+    for i in 0..<splittedCode.count {
+      let line = splittedCode[i]
+      if line.contains("--") {
+        processedCode += String(line.split(separator: "--")[0])
+      } else {
+        processedCode += String(line)
       }
     }
-    return code.replacingOccurrences(of: " ", with: "")
-  }
-
-  static public func filter(code: String) -> String {
-    var processedCode = ""
-    if code.contains("--") {
-      // split the string by "--" and get the first element
-      processedCode = String(code.split(separator: "--")[0])
-    } else {
-      processedCode = String(code)
-    }
-    processedCode = processedCode.trimmingCharacters(in: .whitespacesAndNewlines)
-    processedCode = processedCode.replacingOccurrences(of: "\n", with: "")
-    processedCode = remove_spaces(code: processedCode)
+    processedCode = processedCode.replacingOccurrences(of: " ", with: "")
     return processedCode
   }
 }
@@ -48,7 +26,7 @@ class PrePro {
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
-  func evaluate() -> Int
+  func evaluate(symbolTable: SymbolTable) -> Int
 }
 
 class BinOp: Node {
@@ -60,15 +38,15 @@ class BinOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate(symbolTable: SymbolTable) -> Int {
     if self.value == "+" {
-      return self.children[0].evaluate() + self.children[1].evaluate()
+      return self.children[0].evaluate(symbolTable: symbolTable) + self.children[1].evaluate(symbolTable: symbolTable)
     } else if self.value == "-" {
-      return self.children[0].evaluate() - self.children[1].evaluate()
+      return self.children[0].evaluate(symbolTable: symbolTable) - self.children[1].evaluate(symbolTable: symbolTable)
     } else if self.value == "*" {
-      return self.children[0].evaluate() * self.children[1].evaluate()
+      return self.children[0].evaluate(symbolTable: symbolTable) * self.children[1].evaluate(symbolTable: symbolTable)
     } else if self.value == "/" {
-      return self.children[0].evaluate() / self.children[1].evaluate()
+      return self.children[0].evaluate(symbolTable: symbolTable) / self.children[1].evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -83,11 +61,11 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate(symbolTable: SymbolTable) -> Int {
     if self.value == "+" {
-      return self.children[0].evaluate()
+      return self.children[0].evaluate(symbolTable: symbolTable)
     } else if self.value == "-" {
-      return -self.children[0].evaluate()
+      return -self.children[0].evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -102,7 +80,7 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate(symbolTable: SymbolTable) -> Int {
     let intValue = Int(self.value) ?? -1
     if intValue == -1 {
       writeStderrAndExit("IntVal could not cast String to Int")
@@ -120,7 +98,7 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate(symbolTable: SymbolTable) -> Int {
     return 0
   }
 }
@@ -188,6 +166,8 @@ class Tokenizer {
         self.next = Token(type: "LPAREN", value: 0)
       } else if char == ")" {
         self.next = Token(type: "RPAREN", value: 0)
+      } else if char == "=" {
+        self.next = Token(type: "ASSIGN", value: 0)
       } else if char.isNumber {
         var numberString = String(char)
         var nextPosition = position + 1
@@ -201,6 +181,24 @@ class Tokenizer {
           }
         }
         self.next = Token(type: "NUMBER", value: Int(numberString) ?? 0)
+        position = nextPosition - 1
+      } else if char.isLetter {
+        var variableString = String(char)
+        var nextPosition = position + 1
+        while nextPosition < source.count {
+          let nextChar = source[source.index(source.startIndex, offsetBy: nextPosition)]
+          if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
+            variableString += String(nextChar)
+            nextPosition += 1
+          } else {
+            break
+          }
+        }
+        if variableString == "print" {
+          self.next = Token(type: "PRINT", value: 0)
+        } else {
+          self.next = Token(type: "VARIABLE", value: 0)
+        }
         position = nextPosition - 1
       } else {
         writeStderrAndExit("Invalid character")
@@ -223,20 +221,7 @@ class Parser {
     let filteredCode = PrePro.filter(code: code)
     self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
-    if tokenizer.next.type == "EOF" {
-      writeStderrAndExit("Empty input")
-    }
-    if tokenizer.next.type == "DIV" || tokenizer.next.type == "MUL" {
-      writeStderrAndExit("First number missing")
-    }
-    if tokenizer.next.type == "RPAREN" {
-      writeStderrAndExit("Missing opening parenthesis")
-    }
-    let endOfParsing = parseExpression()
-    if tokenizer.next.type != "EOF" {
-      writeStderrAndExit("Not all tokens were consumed")
-    }
-    return endOfParsing
+    return parseBlock()
   }
 
   private func parseFactor() -> Node {
@@ -257,6 +242,31 @@ class Parser {
         writeStderrAndExit("Missing closing parenthesis")
       }
       tokenizer.selectNext()
+    } else if tokenizer.next.type == "VARIABLE" {
+      let variableName = String(tokenizer.next.value)
+      tokenizer.selectNext()
+      if tokenizer.next.type == "=" {
+        tokenizer.selectNext()
+        let variableValue = parseExpression().evaluate(symbolTable: SymbolTable())
+        symbolTable.setValue(variableName, variableValue)
+        result = NoOp(value: "", children: [])
+      } else {
+        let variableValue = symbolTable.getValue(variableName)
+        result = IntVal(value: String(variableValue), children: [])
+      }
+    } else if tokenizer.next.type == "PRINT" {
+      tokenizer.selectNext()
+      if tokenizer.next.type != "LPAREN" {
+        writeStderrAndExit("Missing opening parenthesis for print statement")
+      }
+      tokenizer.selectNext()
+      let printValue = parseExpression().evaluate(symbolTable: SymbolTable())
+      print(printValue)
+      if tokenizer.next.type != "RPAREN" {
+        writeStderrAndExit("Missing closing parenthesis for print statement")
+      }
+      tokenizer.selectNext()
+      result = NoOp(value: "", children: [])
     } else if tokenizer.next.type == "EOF" {
       writeStderrAndExit("Last value missing")
     } else {
@@ -292,6 +302,55 @@ class Parser {
     }
     return result
   }
+
+  private func parsePrint() -> Node {
+    tokenizer.selectNext()
+    if tokenizer.next.type != "LPAREN" {
+      writeStderrAndExit("Missing opening parenthesis for print statement")
+    }
+    tokenizer.selectNext()
+    let printValue = parseExpression().evaluate(symbolTable: SymbolTable())
+    if tokenizer.next.type != "RPAREN" {
+      writeStderrAndExit("Missing closing parenthesis for print statement")
+    }
+    tokenizer.selectNext()
+    print(printValue)
+    return NoOp(value: "", children: [])
+  }
+
+  private func parseAssignment() -> Node {
+    let variableName = String(tokenizer.next.value)
+    tokenizer.selectNext()
+    if tokenizer.next.type != "ASSIGN" {
+      writeStderrAndExit("Missing assignment operator")
+    }
+    tokenizer.selectNext()
+    let variableValue = parseExpression().evaluate(symbolTable: SymbolTable())
+    symbolTable.setValue(variableName, variableValue)
+    return NoOp(value: "", children: [])
+  }
+
+  private func parseStatement() -> Node {
+    if tokenizer.next.type == "VARIABLE" {
+      return parseAssignment()
+    } else if tokenizer.next.type == "PRINT" {
+      return parsePrint()
+    } else if tokenizer.next.type == "EOF" {
+      return NoOp(value: "", children: [])
+    } else {
+      writeStderrAndExit("Invalid statement")
+      return NoOp(value: "", children: [])
+    }
+  }
+
+  private func parseBlock() -> Node {
+    var statements: [Node] = []
+    while tokenizer.next.type != "EOF" {
+      let statement = parseStatement()
+      statements.append(statement)
+    }
+    return NoOp(value: "", children: statements)
+  }
 }
 
 func readFile(_ path: String) -> String {
@@ -306,6 +365,6 @@ func readFile(_ path: String) -> String {
 
 let fileContent = readFile(CommandLine.arguments[1])
 let myParser = Parser()
+let symbolTable = SymbolTable()
 let ast = myParser.run(code: fileContent)
-let result = ast.evaluate()
-print(result)
+let result = ast.evaluate(symbolTable: symbolTable)
