@@ -8,17 +8,18 @@ func writeStderrAndExit(_ message: String) {
 
 class PrePro {
   static public func filter(code: String) -> String {
-    let splittedCode = code.split(separator: "\n")
+    let splittedCode = code.replacingOccurrences(of: " ", with: "").split(separator: "\n")
     var processedCode = ""
     for i in 0..<splittedCode.count {
       let line = splittedCode[i]
       if line.contains("--") {
-        processedCode += String(line.split(separator: "--")[0])
+        if line.split(separator: "--").count > 1 {
+          processedCode += String(line.split(separator: "--")[0])
+        }
       } else {
         processedCode += String(line)
       }
     }
-    processedCode = processedCode.replacingOccurrences(of: " ", with: "")
     return processedCode
   }
 }
@@ -219,6 +220,7 @@ class Parser {
 
   public func run(code: String) -> Node {
     let filteredCode = PrePro.filter(code: code)
+    print(filteredCode)
     self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
     return parseBlock()
