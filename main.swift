@@ -319,7 +319,8 @@ class Parser {
       return parseAssignment()
     } else if tokenizer.next.type == "PRINT" {
       return parsePrint()
-    } else if tokenizer.next.type == "EOF" {
+    } else if tokenizer.next.type == "EOL" {
+      tokenizer.selectNext()
       return NoOp(value: "", children: [])
     } else {
       writeStderrAndExit("Invalid statement")
@@ -338,7 +339,6 @@ class Parser {
 
   public func run(code: String) -> Node {
     let filteredCode = PrePro.filter(code: code)
-    print(filteredCode)
     self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
     return parseBlock()
