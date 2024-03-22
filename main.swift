@@ -27,7 +27,7 @@ class PrePro {
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
-  func evaluate(symbolTable: SymbolTable) -> Int
+  func evaluate() -> Int
 }
 
 class BinOp: Node {
@@ -39,15 +39,15 @@ class BinOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Int {
+  func evaluate() -> Int {
     if self.value == "+" {
-      return self.children[0].evaluate(symbolTable: symbolTable) + self.children[1].evaluate(symbolTable: symbolTable)
+      return self.children[0].evaluate() + self.children[1].evaluate()
     } else if self.value == "-" {
-      return self.children[0].evaluate(symbolTable: symbolTable) - self.children[1].evaluate(symbolTable: symbolTable)
+      return self.children[0].evaluate() - self.children[1].evaluate()
     } else if self.value == "*" {
-      return self.children[0].evaluate(symbolTable: symbolTable) * self.children[1].evaluate(symbolTable: symbolTable)
+      return self.children[0].evaluate() * self.children[1].evaluate()
     } else if self.value == "/" {
-      return self.children[0].evaluate(symbolTable: symbolTable) / self.children[1].evaluate(symbolTable: symbolTable)
+      return self.children[0].evaluate() / self.children[1].evaluate()
     }
     return 0
   }
@@ -62,11 +62,11 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Int {
+  func evaluate() -> Int {
     if self.value == "+" {
-      return self.children[0].evaluate(symbolTable: symbolTable)
+      return self.children[0].evaluate()
     } else if self.value == "-" {
-      return -self.children[0].evaluate(symbolTable: symbolTable)
+      return -self.children[0].evaluate()
     }
     return 0
   }
@@ -81,7 +81,7 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Int {
+  func evaluate() -> Int {
     guard let intValue = Int(self.value) else {
       writeStderrAndExit("IntVal could not cast String to Int")
       return 0
@@ -99,7 +99,7 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Int {
+  func evaluate() -> Int {
     return 0
   }
 }
@@ -278,7 +278,7 @@ class Parser {
       writeStderrAndExit("Missing opening parenthesis for print statement")
     }
     tokenizer.selectNext()
-    let printValue = parseExpression(symbolTable: symbolTable).evaluate(symbolTable: symbolTable)
+    let printValue = parseExpression(symbolTable: symbolTable).evaluate()
     if tokenizer.next.type != "RPAREN" {
       writeStderrAndExit("Missing closing parenthesis for print statement")
     }
@@ -294,7 +294,7 @@ class Parser {
       writeStderrAndExit("Missing assignment operator")
     }
     tokenizer.selectNext()
-    let variableValue = parseExpression(symbolTable: symbolTable).evaluate(symbolTable: symbolTable)
+    let variableValue = parseExpression(symbolTable: symbolTable).evaluate()
     symbolTable.setValue(variableName, variableValue)
     return NoOp(value: "", children: [])
   }
@@ -344,4 +344,4 @@ let fileContent = readFile(CommandLine.arguments[1])
 let symbolTable = SymbolTable()
 let myParser = Parser()
 let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
-let result = ast.evaluate(symbolTable: symbolTable)
+let result = ast.evaluate()
