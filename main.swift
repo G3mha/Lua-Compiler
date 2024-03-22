@@ -188,7 +188,7 @@ class Tokenizer {
         if variableString == "print" {
           self.next = Token(type: "PRINT", value: 0)
         } else {
-          self.next = Token(type: "VARIABLE", value: 0)
+          self.next = Token(type: "IDENTIFIER", value: 0)
         }
         position = nextPosition - 1
       } else {
@@ -206,14 +206,6 @@ class Parser {
 
   init() {
     self.tokenizer = Tokenizer(source: "")
-  }
-
-  public func run(code: String) -> Node {
-    let filteredCode = PrePro.filter(code: code)
-    print(filteredCode)
-    self.tokenizer = Tokenizer(source: filteredCode)
-    tokenizer.selectNext() // Position the tokenizer to the first token
-    return parseBlock()
   }
 
   private func parseFactor() -> Node {
@@ -234,7 +226,7 @@ class Parser {
         writeStderrAndExit("Missing closing parenthesis")
       }
       tokenizer.selectNext()
-    } else if tokenizer.next.type == "VARIABLE" {
+    } else if tokenizer.next.type == "IDENTIFIER" {
       let variableName = String(tokenizer.next.value)
       tokenizer.selectNext()
       if tokenizer.next.type == "=" {
@@ -323,7 +315,7 @@ class Parser {
   }
 
   private func parseStatement() -> Node {
-    if tokenizer.next.type == "VARIABLE" {
+    if tokenizer.next.type == "IDENTIFIER" {
       return parseAssignment()
     } else if tokenizer.next.type == "PRINT" {
       return parsePrint()
@@ -342,6 +334,14 @@ class Parser {
       statements.append(statement)
     }
     return NoOp(value: "", children: statements)
+  }
+
+  public func run(code: String) -> Node {
+    let filteredCode = PrePro.filter(code: code)
+    print(filteredCode)
+    self.tokenizer = Tokenizer(source: filteredCode)
+    tokenizer.selectNext() // Position the tokenizer to the first token
+    return parseBlock()
   }
 }
 
