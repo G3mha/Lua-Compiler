@@ -13,11 +13,11 @@ class PrePro {
     for i in 0..<splittedCode.count {
       let line = splittedCode[i]
       if line.contains("--") {
-        if line.split(separator: "--").count > 1 {
-          processedCode += String(line.split(separator: "--")[0])
+        if line.prefix(2) != "--" {
+          processedCode += String(line.split(separator: "--")[0]) + "\n"
         }
       } else {
-        processedCode += String(line)
+        processedCode += String(line) + "\n"
       }
     }
     return processedCode
