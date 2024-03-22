@@ -145,16 +145,6 @@ class Tokenizer {
   func selectNext() -> Void {
     if position < source.count {
       let char = source[source.index(source.startIndex, offsetBy: position)]
-      if char == "*" || char == "/" {
-        if self.next.type == "PLUS" || self.next.type == "MINUS" || self.next.type == "MUL" || self.next.type == "DIV" {
-          writeStderrAndExit("Double operators")
-        }
-      }
-      if char == "+" || char == "-" {
-        if self.next.type == "MUL" || self.next.type == "DIV" {
-          writeStderrAndExit("Double operators")
-        }
-      }
       if char == "+" {
         self.next = Token(type: "PLUS", value: 0)
       } else if char == "-" {
