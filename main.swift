@@ -48,6 +48,16 @@ class BinOp: Node {
       return self.children[0].evaluate() * self.children[1].evaluate()
     } else if self.value == "/" {
       return self.children[0].evaluate() / self.children[1].evaluate()
+    } else if self.value == "or" {
+      return self.children[0].evaluate() || self.children[1].evaluate()
+    } else if self.value == "and" {
+      return self.children[0].evaluate() && self.children[1].evaluate()
+    } else if self.value == "==" {
+      return self.children[0].evaluate() == self.children[1].evaluate()
+    } else if self.value == ">" {
+      return self.children[0].evaluate() > self.children[1].evaluate()
+    } else if self.value == "<" {
+      return self.children[0].evaluate() < self.children[1].evaluate()
     }
     return 0
   }
@@ -67,6 +77,8 @@ class UnOp: Node {
       return self.children[0].evaluate()
     } else if self.value == "-" {
       return -self.children[0].evaluate()
+    } else if self.value == "not" {
+      return !self.children[0].evaluate()
     }
     return 0
   }
