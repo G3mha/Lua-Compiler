@@ -363,6 +363,27 @@ class Parser {
     return NoOp(value: "", children: statements)
   }
 
+  private func parseWhile(symbolTable: SymbolTable) -> Node {
+    tokenizer.selectNext()
+    let condition = parseBoolExpression(symbolTable: symbolTable).evaluate()
+    if tokenizer.next.type != "DO" {
+      writeStderrAndExit("Missing DO keyword for while statement")
+    }
+    tokenizer.selectNext()
+    if tokenizer.next.type != "EOL" {
+      writeStderrAndExit("Missing EOL after DO keyword")
+    }
+    var statements: [Node] = []
+    while condition == 1 {
+      while tokenizer.next.type != "END" {
+        let statement = parseStatement(symbolTable: symbolTable)
+        statements.append(statement)
+      }
+    }
+    tokenizer.selectNext()
+    return NoOp(value: "", children: statements)
+  }
+
   private func parsePrint(symbolTable: SymbolTable) -> Node {
     tokenizer.selectNext()
     if tokenizer.next.type != "LPAREN" {
