@@ -242,11 +242,14 @@ class Parser {
     var result: Node = NoOp(value: "", children: [])
     if tokenizer.next.type == "NUMBER" {
       result = IntVal(value: String(tokenizer.next.value), children: [])
+      tokenizer.selectNext()
     } else if tokenizer.next.type == "IDENTIFIER" {
       let variableName = String(tokenizer.next.keyword)
       let variableValue = symbolTable.getValue(variableName)
       result = IntVal(value: String(variableValue), children: [])
+      tokenizer.selectNext()
     } else if ["NOT", "MINUS", "PLUS"].contains(tokenizer.next.type) {
+      tokenizer.selectNext()
       result = UnOp(value: tokenizer.next.type, children: [parseFactor(symbolTable: symbolTable)])
     } else if tokenizer.next.type == "LPAREN" {
       tokenizer.selectNext()
@@ -265,29 +268,29 @@ class Parser {
         writeStderrAndExit("Missing closing parenthesis for read statement")
       }
       // Read line from stdin, then cast to Int and set as value
-      // should only accept Numbers and Bools
       let input = readLine()
-      guard let intValue = Int(input ?? "") else {
-        if input == "true" {
-          result = IntVal(value: "1", children: [])
-        } else if input == "false" {
-          result = IntVal(value: "0", children: [])
-        } else {
-          writeStderrAndExit("Read value could not cast String to Int")
-        }
+      if input == "true" {
+        result = IntVal(value: "1", children: [])
+      } else if input == "false" {
+        result = IntVal(value: "0", children: [])
+      // Try to cast input to Int, if it fails, print error and exit
+      } else if let inputInt = Int(input ?? "") {
+        result = IntVal(value: String(inputInt), children: [])
+      } else {
+        writeStderrAndExit("Read value could not cast String to Int")
       }
     } else {
       writeStderrAndExit("Invalid input")
     }
-    tokenizer.selectNext()
     return result
   }
 
   private func parseTerm(symbolTable: SymbolTable) -> Node {
     var result = parseFactor(symbolTable: symbolTable)
     while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
+      let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: tokenizer.next.type, children: [result, parseFactor(symbolTable: symbolTable)])
+      result = BinOp(value: operatorType, children: [result, parseFactor(symbolTable: symbolTable)])
     }
     return result
   }
@@ -295,8 +298,9 @@ class Parser {
   private func parseExpression(symbolTable: SymbolTable) -> Node {
     var result = parseTerm(symbolTable: symbolTable)
     while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+      let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: tokenizer.next.type, children: [result, parseTerm(symbolTable: symbolTable)])
+      result = BinOp(value: operatorType, children: [result, parseTerm(symbolTable: symbolTable)])
     }
     return result
   }
@@ -304,8 +308,9 @@ class Parser {
   private func parseRelationalExpression(symbolTable: SymbolTable) -> Node {
     var result = parseExpression(symbolTable: symbolTable)
     while tokenizer.next.type == "GT" || tokenizer.next.type == "LT" || tokenizer.next.type == "EQ" {
+      let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: tokenizer.next.type, children: [result, parseExpression(symbolTable: symbolTable)])
+      result = BinOp(value: operatorType, children: [result, parseExpression(symbolTable: symbolTable)])
     }
     return result
   }
@@ -313,8 +318,9 @@ class Parser {
   private func parseBooleanTerm(symbolTable: SymbolTable) -> Node {
     var result = parseRelationalExpression(symbolTable: symbolTable)
     while tokenizer.next.type == "AND" {
+      let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: tokenizer.next.type, children: [result, parseRelationalExpression(symbolTable: symbolTable)])
+      result = BinOp(value: operatorType, children: [result, parseRelationalExpression(symbolTable: symbolTable)])
     }
     return result
   }
@@ -322,8 +328,9 @@ class Parser {
   private func parseBoolExpression(symbolTable: SymbolTable) -> Node {
     var result = parseBooleanTerm(symbolTable: symbolTable)
     while tokenizer.next.type == "OR" {
+      let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: tokenizer.next.type, children: [result, parseBooleanTerm(symbolTable: symbolTable)])
+      result = BinOp(value: operatorType, children: [result, parseBooleanTerm(symbolTable: symbolTable)])
     }
     return result
   }
@@ -390,7 +397,7 @@ class Parser {
       writeStderrAndExit("Missing opening parenthesis for print statement")
     }
     tokenizer.selectNext()
-    let printValue = parseExpression(symbolTable: symbolTable).evaluate()
+    let printValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
     if tokenizer.next.type != "RPAREN" {
       writeStderrAndExit("Missing closing parenthesis for print statement")
     }
@@ -406,26 +413,28 @@ class Parser {
       writeStderrAndExit("Missing assignment operator")
     }
     tokenizer.selectNext()
-    let variableValue = parseExpression(symbolTable: symbolTable).evaluate()
+    let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
     symbolTable.setValue(variableName, variableValue)
     return NoOp(value: "", children: [])
   }
 
   private func parseStatement(symbolTable: SymbolTable) -> Node {
+    // print the x variable from symbolTable
     if tokenizer.next.type == "IDENTIFIER" {
       return parseAssignment(symbolTable: symbolTable)
     } else if tokenizer.next.type == "PRINT" {
       return parsePrint(symbolTable: symbolTable)
     } else if tokenizer.next.type == "WHILE" {
-      tokenizer.selectNext()
-      // TODO: Implement while loop
+      return parseWhile(symbolTable: symbolTable)
+    } else if tokenizer.next.type == "IF" {
+      return parseIf(symbolTable: symbolTable)
     } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
     } else {
       writeStderrAndExit("Invalid statement")
-      return NoOp(value: "", children: [])
     }
+    return NoOp(value: "", children: [])
   }
 
   private func parseBlock(symbolTable: SymbolTable) -> Node {
