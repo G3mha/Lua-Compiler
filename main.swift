@@ -49,15 +49,15 @@ class BinOp: Node {
     } else if self.value == "DIV" {
       return self.children[0].evaluate() / self.children[1].evaluate()
     } else if self.value == "OR" {
-      return self.children[0].evaluate() || self.children[1].evaluate()
+      return ((self.children[0].evaluate() != 0) || (self.children[1].evaluate() != 0)) ? 1 : 0
     } else if self.value == "AND" {
-      return self.children[0].evaluate() && self.children[1].evaluate()
+      return ((self.children[0].evaluate() != 0) && (self.children[1].evaluate() != 0)) ? 1 : 0
     } else if self.value == "EQ" {
-      return self.children[0].evaluate() == self.children[1].evaluate()
+      return (self.children[0].evaluate() == self.children[1].evaluate()) ? 1 : 0
     } else if self.value == "GT" {
-      return self.children[0].evaluate() > self.children[1].evaluate()
+      return (self.children[0].evaluate() > self.children[1].evaluate()) ? 1 : 0
     } else if self.value == "LT" {
-      return self.children[0].evaluate() < self.children[1].evaluate()
+      return (self.children[0].evaluate() < self.children[1].evaluate()) ? 1 : 0
     }
     return 0
   }
@@ -78,7 +78,7 @@ class UnOp: Node {
     } else if self.value == "MINUS" {
       return -self.children[0].evaluate()
     } else if self.value == "NOT" {
-      return !self.children[0].evaluate()
+      return (self.children[0].evaluate() == 0) ? 1 : 0
     }
     return 0
   }
@@ -210,11 +210,11 @@ class Tokenizer {
             break
           }
         }
-        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read"].contains(variableString) ==  {
+        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read"].contains(variableString) {
           self.next = Token(type: variableString.uppercased(), value: 0)
-        } if variableString == "true" {
+        } else if variableString == "true" {
           self.next = Token(type: "NUMBER", value: 1)
-        } if variableString == "false" {
+        } else if variableString == "false" {
           self.next = Token(type: "NUMBER", value: 0)
         } else {
           self.next = Token(type: "IDENTIFIER", value: 0)
