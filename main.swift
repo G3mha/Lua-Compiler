@@ -123,10 +123,8 @@ class SymbolTable {
   }
 
   func getValue(_ variable: String) -> Int {
-    // if variable is not in the dictionary, return 0
     if variables[variable] == nil {
       writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
-      return 0
     }
     return variables[variable]!
   }
