@@ -96,7 +96,6 @@ class IntVal: Node {
   func evaluate() -> Int {
     guard let intValue = Int(self.value) else {
       writeStderrAndExit("IntVal could not cast String to Int")
-      return 0
     }
     return intValue
   }
