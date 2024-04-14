@@ -153,68 +153,62 @@ class Tokenizer {
 
   func selectNext() -> Void {
     if position < source.count {
-      let char = source[source.index(source.startIndex, offsetBy: position)]
-      if char == "+" {
+      var tokenWord = source[position]
+      if tokenWord == "+" {
         self.next = Token(type: "PLUS", value: "0")
-      } else if char == "-" {
+      } else if tokenWord == "-" {
         self.next = Token(type: "MINUS", value: "0")
-      } else if char == "*" {
+      } else if tokenWord == "*" {
         self.next = Token(type: "MUL", value: "0")
-      } else if char == "/" {
+      } else if tokenWord == "/" {
         self.next = Token(type: "DIV", value: "0")
-      } else if char == "(" {
+      } else if tokenWord == "(" {
         self.next = Token(type: "LPAREN", value: "0")
-      } else if char == ")" {
+      } else if tokenWord == ")" {
         self.next = Token(type: "RPAREN", value: "0")
-      } else if char == ">" {
+      } else if tokenWord == ">" {
         self.next = Token(type: "GT", value: "0")
-      } else if char == "<" {
+      } else if tokenWord == "<" {
         self.next = Token(type: "LT", value: "0")
-      } else if char == "=" {
-        if source[source.index(source.startIndex, offsetBy: position + 1)] == "=" {
+      } else if tokenWord == "=" {
+        if source[position + 1] == "=" {
           self.next = Token(type: "EQ", value: "0")
           position += 1
         } else {
           self.next = Token(type: "ASSIGN", value: "0")
         }
-      } else if char == "\n" {
+      } else if tokenWord == "\n" {
         self.next = Token(type: "EOL", value: "0")
-      } else if char.isNumber {
-        var numberString = String(char)
-        var nextPosition = position + 1
-        while nextPosition < source.count {
-          let nextChar = source[source.index(source.startIndex, offsetBy: nextPosition)]
+      } else if tokenWord.isNumber {
+        while position < source.count {
+          let nextChar = source[position]
           if nextChar.isNumber {
-            numberString += String(nextChar)
-            nextPosition += 1
+            tokenWord += nextChar
           } else {
             break
           }
+          position += 1
         }
+        position -= 1
         self.next = Token(type: "NUMBER", value: numberString)
-        position = nextPosition - 1
-      } else if char.isLetter {
-        var variableString = String(char)
-        var nextPosition = position + 1
-        while nextPosition < source.count {
-          let nextChar = source[source.index(source.startIndex, offsetBy: nextPosition)]
+      } else if tokenWord.isLetter {
+        while position < source.count {
+          let nextChar = source[position]
           if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
-            variableString += String(nextChar)
-            nextPosition += 1
+            tokenWord += nextChar
           } else {
             break
           }
+          position += 1
         }
-        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read"].contains(variableString) {
-          self.next = Token(type: variableString.uppercased(), value: "0")
-        } else if variableString == "true" {
-          self.next = Token(type: "NUMBER", value: "1")
-        } else if variableString == "false" {
-          self.next = Token(type: "NUMBER", value: "0")
+        position -= 1
+        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read"].contains(tokenWord) {
+          self.next = Token(type: tokenWord.uppercased(), value: "0")
+        } else if tokenWord == "true" || tokenWord == "false" {
+          self.next = Token(type: "NUMBER", value: tokenWord == "true" ? "1" : "0")
         } else {
-          self.next = Token(type: "IDENTIFIER", value: variableString)
+          self.next = Token(type: "IDENTIFIER", value: tokenWord)
         }
-        position = nextPosition - 1
       } else {
         writeStderrAndExit("Invalid character \(char)")
       }
@@ -330,105 +324,125 @@ class Parser {
   }
 
   private func parseIf(symbolTable: SymbolTable) -> Node {
-    tokenizer.selectNext()
     let condition = parseBoolExpression(symbolTable: symbolTable).evaluate()
-    if tokenizer.next.type != "THEN" {
-      writeStderrAndExit("Missing THEN within if statement")
-    }
-    tokenizer.selectNext()
-    if tokenizer.next.type != "EOL" {
-      writeStderrAndExit("Missing EOL after THEN")
-    }
-    var statements: [Node] = []
-    if condition == 1 {
-      while tokenizer.next.type != "END" {
-        let statement = parseStatement(symbolTable: symbolTable)
-        statements.append(statement)
+    if tokenizer.next.type == "THEN" {
+      tokenizer.selectNext()
+      if tokenizer.next.type == "EOL" {
+        tokenizer.selectNext()
+        var statements: [Node] = []
+        while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
+          if condition == 1 {
+            let statement = parseStatement(symbolTable: symbolTable)
+            statements.append(statement)
+          } else {
+            tokenizer.selectNext()
+          }
+        }
+        if tokenizer.next.type == "ELSE" {
+          tokenizer.selectNext()
+          while tokenizer.next.type != "END" {
+            if condition == 0 {
+              let statement = parseStatement(symbolTable: symbolTable)
+              statements.append(statement)
+            } else {
+              tokenizer.selectNext()
+            }
+          }
+        }
+        if tokenizer.next.type == "END" {
+          tokenizer.selectNext()
+          return NoOp(value: "", children: statements)
+        } else {
+          writeStderrAndExit("Missing END after IF statement")
+        }
+      } else {
+        writeStderrAndExit("Missing EOL after THEN")
       }
     } else {
-      while !["END", "ELSE"].contains(tokenizer.next.type) {
-        tokenizer.selectNext()
-      }
-      if tokenizer.next.type == "ELSE" {
-        tokenizer.selectNext()
-        if tokenizer.next.type != "EOL" {
-          writeStderrAndExit("Missing EOL after ELSE")
-        }
-        while tokenizer.next.type != "END" {
-          let statement = parseStatement(symbolTable: symbolTable)
-          statements.append(statement)
-        }
-      }
-      tokenizer.selectNext()
+      writeStderrAndExit("Missing THEN within if statement")
     }
-    return NoOp(value: "", children: statements)
   }
 
   private func parseWhile(symbolTable: SymbolTable) -> Node {
-    tokenizer.selectNext()
     let condition = parseBoolExpression(symbolTable: symbolTable).evaluate()
-    if tokenizer.next.type != "DO" {
+    if tokenizer.next.type == "DO" {
+      tokenizer.selectNext()
+      if tokenizer.next.type == "EOL" {
+        tokenizer.selectNext()
+        var statements: [Node] = []
+        while condition == 1 {
+          while tokenizer.next.type != "END" {
+            let statement = parseStatement(symbolTable: symbolTable)
+            statements.append(statement)
+          }
+          condition = parseBoolExpression(symbolTable: symbolTable).evaluate()
+        }
+        if tokenizer.next.type == "END" {
+          tokenizer.selectNext()
+          return NoOp(value: "", children: statements)
+        } else {
+          writeStderrAndExit("Missing END after WHILE loop")
+        }
+      } else {
+        writeStderrAndExit("Missing EOL after DO")
+      }
+    } else {
       writeStderrAndExit("Missing DO within while statement")
     }
-    tokenizer.selectNext()
-    if tokenizer.next.type != "EOL" {
-      writeStderrAndExit("Missing EOL after DO")
-    }
-    var statements: [Node] = []
-    while condition == 1 {
-      while tokenizer.next.type != "END" {
-        let statement = parseStatement(symbolTable: symbolTable)
-        statements.append(statement)
-      }
-    }
-    tokenizer.selectNext()
-    return NoOp(value: "", children: statements)
   }
 
   private func parsePrint(symbolTable: SymbolTable) -> Node {
-    tokenizer.selectNext()
-    if tokenizer.next.type != "LPAREN" {
+    if tokenizer.next.type == "LPAREN" {
+      tokenizer.selectNext()
+      let printValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
+      if tokenizer.next.type == "RPAREN" {
+        tokenizer.selectNext()
+        print(printValue)
+        return NoOp(value: "", children: [])
+      } else {
+        writeStderrAndExit("Missing closing parenthesis for print statement")
+      }
+    } else {
       writeStderrAndExit("Missing opening parenthesis for print statement")
     }
-    tokenizer.selectNext()
-    let printValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
-    if tokenizer.next.type != "RPAREN" {
-      writeStderrAndExit("Missing closing parenthesis for print statement")
-    }
-    tokenizer.selectNext()
-    print(printValue)
-    return NoOp(value: "", children: [])
   }
 
   private func parseAssignment(symbolTable: SymbolTable) -> Node {
     let variableName = String(tokenizer.next.value)
     tokenizer.selectNext()
-    if tokenizer.next.type != "ASSIGN" {
+    if tokenizer.next.type == "ASSIGN" {
+      tokenizer.selectNext()
+      let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
+      symbolTable.setValue(variableName, variableValue)
+      return NoOp(value: "", children: [])
+    } else {
       writeStderrAndExit("Missing assignment operator")
     }
-    tokenizer.selectNext()
-    let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
-    symbolTable.setValue(variableName, variableValue)
-    return NoOp(value: "", children: [])
   }
 
   private func parseStatement(symbolTable: SymbolTable) -> Node {
-    // print the x variable from symbolTable
+    var result = NoOp(value: "", children: [])
+
     if tokenizer.next.type == "IDENTIFIER" {
-      return parseAssignment(symbolTable: symbolTable)
-    } else if tokenizer.next.type == "PRINT" {
-      return parsePrint(symbolTable: symbolTable)
-    } else if tokenizer.next.type == "WHILE" {
-      return parseWhile(symbolTable: symbolTable)
-    } else if tokenizer.next.type == "IF" {
-      return parseIf(symbolTable: symbolTable)
-    } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
-      return NoOp(value: "", children: [])
-    } else {
-      writeStderrAndExit("Invalid statement")
+      result = parseAssignment(symbolTable: symbolTable)
+    } else if tokenizer.next.type == "PRINT" {
+      tokenizer.selectNext()
+      result = parsePrint(symbolTable: symbolTable)
+    } else if tokenizer.next.type == "WHILE" {
+      tokenizer.selectNext()
+      result = parseWhile(symbolTable: symbolTable)
+    } else if tokenizer.next.type == "IF" {
+      tokenizer.selectNext()
+      result = parseIf(symbolTable: symbolTable)
     }
-    return NoOp(value: "", children: [])
+    
+    if tokenizer.next.type == "EOL" {
+      tokenizer.selectNext()
+      return result
+    } else {
+      writeStderrAndExit("Missing EOL")
+    }
   }
 
   private func parseBlock(symbolTable: SymbolTable) -> Node {

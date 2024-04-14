@@ -9,8 +9,8 @@
 ```ebnf
 BLOCK = { STATEMENT };
 STATEMENT = ( "λ" | ASSIGNMENT | PRINT | WHILE | IF ), "\n" ;
-ASSIGNMENT = IDENTIFIER, "=", EXPRESSION ;
-PRINT = "print", "(", EXPRESSION, ")" ;
+ASSIGNMENT = IDENTIFIER, "=", BOOL_EXP ;
+PRINT = "print", "(", BOOL_EXP, ")" ;
 WHILE = "while", BOOL_EXP, "do", "\n", "λ", { ( STATEMENT ), "λ" }, "end";
 IF = "if", BOOL_EXP, "then", "\n", "λ", { ( STATEMENT ), "λ" }, ( "λ" | ( "else", "\n", "λ", { ( STATEMENT ), "λ" })), "end" ;
 BOOL_EXP = BOOL_TERM, { ("or"), BOOL_TERM } ;
