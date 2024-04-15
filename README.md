@@ -8,11 +8,7 @@
 
 ```ebnf
 BLOCK = { STATEMENT };
-STATEMENT = ( "λ" | ASSIGNMENT | PRINT | WHILE | IF ), "\n" ;
-ASSIGNMENT = IDENTIFIER, "=", BOOL_EXP ;
-PRINT = "print", "(", BOOL_EXP, ")" ;
-WHILE = "while", BOOL_EXP, "do", "\n", "λ", { ( STATEMENT ), "λ" }, "end";
-IF = "if", BOOL_EXP, "then", "\n", "λ", { ( STATEMENT ), "λ" }, ( "λ" | ( "else", "\n", "λ", { ( STATEMENT ), "λ" })), "end" ;
+STATEMENT = ( "λ" | IDENTIFIER, "=", BOOL_EXP | "print", "(", BOOL_EXP, ")"  | "while", BOOL_EXP, "do", "\n", "λ", { ( STATEMENT ), "λ" }, "end" | "if", BOOL_EXP, "then", "\n", "λ", { ( STATEMENT ), "λ" }, ( "λ" | ( "else", "\n", "λ", { ( STATEMENT ), "λ" })), "end" ), "\n" ;
 BOOL_EXP = BOOL_TERM, { ("or"), BOOL_TERM } ;
 BOOL_TERM = REL_EXP, { ("and"), REL_EXP } ;
 REL_EXP = EXPRESSION, { ("==" | ">" | "<"), EXPRESSION } ;
