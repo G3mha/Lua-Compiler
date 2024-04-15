@@ -448,16 +448,27 @@ class Parser {
       return parsePrint(symbolTable: symbolTable)
     } else if tokenizer.next.type == "WHILE" {
       tokenizer.selectNext()
-      return parseWhile(symbolTable: symbolTable)
+      let result = parseWhile(symbolTable: symbolTable)
+      if tokenizer.next.type == "EOL" {
+        tokenizer.selectNext()
+        return result
+      } else {
+        writeStderrAndExit("Unexpected token after END in WHILE statement")
+      }
     } else if tokenizer.next.type == "IF" {
       tokenizer.selectNext()
-      return parseIf(symbolTable: symbolTable)
-    }
-    if tokenizer.next.type == "EOL" {
+      let result = parseIf(symbolTable: symbolTable)
+      if tokenizer.next.type == "EOL" {
+        tokenizer.selectNext()
+        return result
+      } else {
+        writeStderrAndExit("Unexpected token after END in IF statement")
+      }
+    } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
     } else {
-      writeStderrAndExit("Missing EOL")
+      writeStderrAndExit("Invalid statement")
     }
     return NoOp(value: "", children: [])
   }
