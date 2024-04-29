@@ -520,7 +520,12 @@ class Parser {
       let printValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
       if tokenizer.next.type == "RPAREN" {
         tokenizer.selectNext()
-        print(printValue)
+        switch printValue {
+          case .integer(let intValue):
+            print(intValue)
+          case .string(let stringValue):
+            print(stringValue)
+        }
         return NoOp(value: "", children: [])
       } else {
         writeStderrAndExit("Missing closing parenthesis for print statement")
