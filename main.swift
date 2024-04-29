@@ -85,6 +85,10 @@ class BinOp: Node {
             return .integer((firstVal < secondVal) ? 1 : 0)
           case "EQ":
             return .integer((firstVal == secondVal) ? 1 : 0)
+          case "AND":
+            return .integer((firstVal == 1 && secondVal == 1) ? 1 : 0)
+          case "OR":
+            return .integer((firstVal == 1 || secondVal == 1) ? 1 : 0)
           default:
             return .integer(0)
         }
@@ -525,10 +529,8 @@ class Parser {
     var conditionValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
     
     var statements: [Node] = []
-    // print the value of x_1 on SymbolTable
+
     while getIntFromEvalResult(conditionValue) == 1 {
-      print(tokenizer.next.type)
-      print(tokenizer.next.value)
       if tokenizer.next.type == "DO" {
         tokenizer.selectNext()
         if tokenizer.next.type == "EOL" {
