@@ -221,23 +221,28 @@ class SymbolTable {
   private var variables: [String: VariableTypes] = [:]
 
   func initVar(_ variable: String) {
-    variables[variable] = .integer(0)
+    if variables.keys.contains(variable) {
+      writeStderrAndExit("Variable already initialized: \(variable)")
+    } else {
+      variables[variable] = .integer(0)
+    }
   }
 
   func setValue(_ variable: String, _ value: VariableTypes) {
-    guard variables.keys.contains(variable) else {
+    if let _ = variables[variable] {
+      variables[variable] = value
+    } else {
       writeStderrAndExit("Attempt to set an uninitialized variable: \(variable)")
-      return
     }
-    variables[variable] = value
   }
 
   func getValue(_ variable: String) -> VariableTypes? {
-    guard let value = variables[variable] else {
+    if let value = variables[variable] {
+      return value
+    } else {
       writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
       return nil
     }
-    return value
   }
 }
 
