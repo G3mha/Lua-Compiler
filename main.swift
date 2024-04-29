@@ -24,10 +24,15 @@ class PrePro {
   }
 }
 
+enum EvalResult {
+  case integer(Int)
+  case string(String)
+}
+
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
-  func evaluate() -> Int
+  func evaluate() -> EvalResult
 }
 
 class BinOp: Node {
@@ -39,27 +44,38 @@ class BinOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
-    if self.value == "PLUS" {
-      return self.children[0].evaluate() + self.children[1].evaluate()
-    } else if self.value == "MINUS" {
-      return self.children[0].evaluate() - self.children[1].evaluate()
-    } else if self.value == "MUL" {
-      return self.children[0].evaluate() * self.children[1].evaluate()
-    } else if self.value == "DIV" {
-      return self.children[0].evaluate() / self.children[1].evaluate()
-    } else if self.value == "OR" {
-      return ((self.children[0].evaluate() != 0) || (self.children[1].evaluate() != 0)) ? 1 : 0
-    } else if self.value == "AND" {
-      return ((self.children[0].evaluate() != 0) && (self.children[1].evaluate() != 0)) ? 1 : 0
-    } else if self.value == "EQ" {
-      return (self.children[0].evaluate() == self.children[1].evaluate()) ? 1 : 0
-    } else if self.value == "GT" {
-      return (self.children[0].evaluate() > self.children[1].evaluate()) ? 1 : 0
-    } else if self.value == "LT" {
-      return (self.children[0].evaluate() < self.children[1].evaluate()) ? 1 : 0
+  func evaluate() -> EvalResult {
+    let firstValue = self.children[0].evaluate()
+    let secondValue = self.children[1].evaluate()
+    
+    switch (firstResult, secondResult) {
+      case let (.integer(firstVal), .integer(secondVal)):
+        switch self.value {
+          case "PLUS":
+            return .integer(firstVal + secondVal)
+          case "MINUS":
+            return .integer(firstVal - secondVal)
+          case "MUL":
+            return .integer(firstVal * secondVal)
+          case "DIV":
+            return .integer(firstVal / secondVal)
+          case "GT":
+            return .integer((firstVal > secondVal) ? 1 : 0)
+          case "LT":
+            return .integer((firstVal < secondVal) ? 1 : 0)
+          default:
+            return .integer(0)
+        }
+      case let (.string(firstStr), .string(secondStr)):
+        if self.value == "CONCAT" {
+          return .string(firstStr + secondStr)
+        } else {
+          writeStderrAndExit("Unsupported operation on strings")
+        }
+      default:
+        writeStderrAndExit("Type mismatch in binary operation")
     }
-    return 0
+    return .integer(0) // Default return in case of an error, consider a better error handling strategy
   }
 }
 
@@ -72,13 +88,21 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate() {
+    let value = self.children[0].evaluate()
+
+    if self.value == "NOT" {
+      return (value == 0) ? 1 : 0
+    }
+
+    if value is String {
+      writeStderrAndExit("Cannot perform unary arithmetic operations on Strings")
+    } 
+    
     if self.value == "PLUS" {
-      return self.children[0].evaluate()
+      return value
     } else if self.value == "MINUS" {
-      return -self.children[0].evaluate()
-    } else if self.value == "NOT" {
-      return (self.children[0].evaluate() == 0) ? 1 : 0
+      return -value
     }
     return 0
   }
@@ -93,13 +117,27 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate() {
     if let intValue = Int(self.value) {
       return intValue
     } else {
       writeStderrAndExit("IntVal value could not cast String to Int")
     }
     return 0
+  }
+}
+
+class StringVal: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() {
+    return self.value
   }
 }
 
@@ -112,23 +150,37 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate() -> Int {
+  func evaluate() {
     return 0
   }
 }
 
-class SymbolTable {
-  private var variables: [String: Int] = [:]
+enum VariableTypes {
+  case integer(Int)
+  case string(String)
+}
 
-  func setValue(_ variable: String, _ value: Int) {
+class SymbolTable {
+  private var variables: [String: VariableTypes] = [:]
+
+  func initVar(_ variable: String) {
+    variables[variable] = .integer(0)
+  }
+
+  func setValue(_ variable: String, _ value: VariableTypes) {
+    guard variables.keys.contains(variable) else {
+      writeStderrAndExit("Attempt to set an uninitialized variable: \(variable)")
+      return
+    }
     variables[variable] = value
   }
 
-  func getValue(_ variable: String) -> Int {
-    if variables[variable] == nil {
+  func getValue(_ variable: String) -> VariableTypes? {
+    guard let value = variables[variable] else {
       writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
+      return nil
     }
-    return variables[variable]!
+    return value
   }
 }
 
@@ -180,8 +232,26 @@ class Tokenizer {
         } else {
           self.next = Token(type: "ASSIGN", value: "0")
         }
+      } else if char == "." {
+        if source[source.index(source.startIndex, offsetBy: position+1)] == "." {
+          self.next = Token(type: "CONCAT", value: "0")
+          position += 1
+        } else {
+          writeStderrAndExit("Invalid character \(tokenWord)")
+        }
       } else if char == "\n" {
         self.next = Token(type: "EOL", value: "0")
+      } else if char == "\"" {
+        while position < source.count {
+          let nextChar = source[source.index(source.startIndex, offsetBy: position)]
+          if nextChar == "\"" {
+            break
+          } else {
+            tokenWord += String(nextChar)
+          }
+          position += 1
+        }
+        self.next = Token(type: "STRING", value: tokenWord)
       } else if char.isNumber {
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
@@ -296,7 +366,7 @@ class Parser {
 
   private func parseExpression(symbolTable: SymbolTable) -> Node {
     var result = parseTerm(symbolTable: symbolTable)
-    while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" {
+    while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "CONCAT" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
       result = BinOp(value: operatorType, children: [result, parseTerm(symbolTable: symbolTable)])
@@ -426,6 +496,30 @@ class Parser {
     return NoOp(value: "", children: [])
   }
 
+  private func parseDeclaration(symbolTable: SymbolTable) -> Node {
+    if tokenizer.next.type == "IDENTIFIER" {
+      let variableName = tokenizer.next.value
+      symbolTable.initVar(variableName)
+      tokenizer.selectNext()
+      if tokenizer.next.type == "ASSIGN" {
+        tokenizer.selectNext()
+        let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
+        if tokenizer.next.type == "STRING" {
+          symbolTable.setValue(variableName, .string(variableValue))
+          tokenizer.selectNext()
+        } else if tokenizer.next.type == "NUMBER" {
+          symbolTable.setValue(variableName, .integer(variableValue))
+          tokenizer.selectNext()
+        } else {
+          writeStderrAndExit("Invalid variable value in declaration")
+        }
+      }
+    } else {
+      writeStderrAndExit("Invalid variable name in declaration")
+    }
+    return NoOp(value: "", children: [])
+  }
+
   private func parseAssignment(symbolTable: SymbolTable, variableName: String) -> Node {
     if tokenizer.next.type == "ASSIGN" {
       tokenizer.selectNext()
@@ -443,6 +537,9 @@ class Parser {
       let variableName = tokenizer.next.value
       tokenizer.selectNext()
       return parseAssignment(symbolTable: symbolTable, variableName: variableName)
+    } else if tokenizer.next.type == "DECLARATION" {
+      tokenizer.selectNext()
+      return parseDeclaration(symbolTable: symbolTable)
     } else if tokenizer.next.type == "PRINT" {
       tokenizer.selectNext()
       return parsePrint(symbolTable: symbolTable)

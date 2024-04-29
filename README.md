@@ -8,17 +8,18 @@
 
 ```ebnf
 BLOCK = { STATEMENT };
-STATEMENT = ( "λ" | IDENTIFIER, "=", BOOL_EXP | "print", "(", BOOL_EXP, ")"  | "while", BOOL_EXP, "do", "\n", "λ", { ( STATEMENT ), "λ" }, "end" | "if", BOOL_EXP, "then", "\n", "λ", { ( STATEMENT ), "λ" }, ( "λ" | ( "else", "\n", "λ", { ( STATEMENT ), "λ" })), "end" ), "\n" ;
+STATEMENT = ( IDENTIFIER, "=", BOOL_EXP | "local", IDENTIFIER, ["=",BOOL_EXP] | "print", "(", BOOL_EXP, ")" | "while", BOOL_EXP, "do", "\n", { ( STATEMENT )}, "end" | "if", BOOL_EXP, "then", "\n", { ( STATEMENT ) }, [ "else", "\n", { ( STATEMENT )}], "end" ), "\n" ;
 BOOL_EXP = BOOL_TERM, { ("or"), BOOL_TERM } ;
 BOOL_TERM = REL_EXP, { ("and"), REL_EXP } ;
 REL_EXP = EXPRESSION, { ("==" | ">" | "<"), EXPRESSION } ;
-EXPRESSION = TERM, { ("+" | "-"), TERM } ;
+EXPRESSION = TERM, { ("+" | "-" |".."), TERM } ;
 TERM = FACTOR, { ("*" | "/"), FACTOR } ;
-FACTOR = NUMBER | IDENTIFIER | (("+" | "-" | "not"), FACTOR ) | "(", BOOL_EXP, ")" | "read", "(", ")" ;
+FACTOR = NUMBER | STRING |IDENTIFIER | (("+" | "-" | "not"), FACTOR ) | "(", BOOL_EXP, ")" | "read", "(", ")" ;
 IDENTIFIER = LETTER, { LETTER | DIGIT | "_" } ;
 NUMBER = DIGIT, { DIGIT } ;
 LETTER = ( "a" | "..." | "z" | "A" | "..." | "Z" ) ;
 DIGIT = ( "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0" ) ;
+STRING = '"', ({LETTER | DIGIT | "_"}), '"';
 ```
 
 ## Railroad Diagram
