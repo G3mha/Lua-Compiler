@@ -29,6 +29,15 @@ enum EvalResult {
   case string(String)
 }
 
+func getIntFromEvalResult(_ evalResult: EvalResult) -> Int {
+  switch evalResult {
+  case .integer(let intValue):
+    return intValue
+  case .string(let stringValue):
+    writeStderrAndExit("Expected integer, got string: \(stringValue)")
+  }
+}
+
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
@@ -123,11 +132,11 @@ class IntVal: Node {
 
   func evaluate() -> EvalResult {
     if let intValue = Int(self.value) {
-      return intValue
+      return .integer(intValue)
     } else {
       writeStderrAndExit("IntVal value could not cast String to Int")
     }
-    return 0
+
   }
 }
 
@@ -141,7 +150,7 @@ class StringVal: Node {
   }
 
   func evaluate() -> EvalResult {
-    return self.value
+    return .string(self.value)
   }
 }
 
@@ -155,7 +164,7 @@ class NoOp: Node {
   }
 
   func evaluate() -> EvalResult {
-    return 0
+    return .integer(0)
   }
 }
 
@@ -314,7 +323,16 @@ class Parser {
       let variableName = tokenizer.next.value
       let variableValue = symbolTable.getValue(variableName)
       tokenizer.selectNext()
-      return IntVal(value: String(variableValue), children: [])
+      if let value = variableValue {
+        switch value {
+          case .integer(let intValue):
+            return IntVal(value: String(intValue), children: [])
+          case .string(let strValue):
+            return StringVal(value: strValue, children: [])
+        }
+      } else {
+        writeStderrAndExit("Variable \(variableName) not found in symbol table")
+      }
     } else if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "NOT" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
@@ -416,7 +434,7 @@ class Parser {
         tokenizer.selectNext()
         var statements: [Node] = []
         while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
-          if condition == 1 {
+          if getIntFromEvalResult(condition) == 1 {
             let statement = parseStatement(symbolTable: symbolTable)
             statements.append(statement)
           } else {
@@ -426,7 +444,7 @@ class Parser {
         if tokenizer.next.type == "ELSE" {
           tokenizer.selectNext()
           while tokenizer.next.type != "END" {
-            if condition == 0 {
+            if getIntFromEvalResult(condition) == 0 {
               let statement = parseStatement(symbolTable: symbolTable)
               statements.append(statement)
             } else {
@@ -454,7 +472,7 @@ class Parser {
     var whileEndPosition = tokenizer.position-1
     var conditionValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
     var statements: [Node] = []
-    while conditionValue == 1 {
+    while getIntFromEvalResult(conditionValue) == 1 {
       if tokenizer.next.type == "DO" {
         tokenizer.selectNext()
         if tokenizer.next.type == "EOL" {
