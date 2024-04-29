@@ -325,13 +325,17 @@ class Tokenizer {
         position += 1
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
-
           if nextChar == "\"" {
             break
+          } else if nextChar == "\n"{
+            writeStderrAndExit("Forgot to close string with \"")
           } else {
             tokenWord += String(nextChar)
           }
           position += 1
+        }
+        if source[source.index(source.startIndex, offsetBy: position)] != "\"" {
+          writeStderrAndExit("Forgot to close string with \"")
         }
         self.next = Token(type: "STRING", value: tokenWord)
       } else if char.isNumber {
