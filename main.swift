@@ -215,16 +215,17 @@ class Declaration: Node {
 enum VariableTypes {
   case integer(Int)
   case string(String)
+  case nilValue
 }
 
 class SymbolTable {
   private var variables: [String: VariableTypes] = [:]
 
-  func initVar(_ variable: String) {
+  func initVar(_ variable: String, _ value: VariableTypes = .nilValue) {
     if variables.keys.contains(variable) {
       writeStderrAndExit("Variable already initialized: \(variable)")
     } else {
-      variables[variable] = .integer(0)
+      variables[variable] = value
     }
   }
 
@@ -378,6 +379,8 @@ class Parser {
             return IntVal(value: String(intValue), children: [])
           case .string(let strValue):
             return StringVal(value: strValue, children: [])
+          case .nilValue:
+            writeStderrAndExit("Variable \(variableName) is initialized, but has no value assigned")
         }
       } else {
         writeStderrAndExit("Variable \(variableName) not found in symbol table")
@@ -520,8 +523,12 @@ class Parser {
     let whileStartPosition = tokenizer.position-1
     var whileEndPosition = tokenizer.position-1
     var conditionValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
+    
     var statements: [Node] = []
+    // print the value of x_1 on SymbolTable
     while getIntFromEvalResult(conditionValue) == 1 {
+      print(tokenizer.next.type)
+      print(tokenizer.next.value)
       if tokenizer.next.type == "DO" {
         tokenizer.selectNext()
         if tokenizer.next.type == "EOL" {
@@ -583,8 +590,14 @@ class Parser {
         tokenizer.selectNext()
         // Parse the expression to initialize the variable
         let expression = parseBoolExpression(symbolTable: symbolTable)
-        // Create a Declaration node with the expression and variable name as children
-        return Declaration(value: "", children: [expression, StringVal(value: variableName, children: [])])
+        let variableValue = expression.evaluate()
+        switch variableValue {
+          case .integer(let intValue):
+            symbolTable.initVar(variableName, .integer(intValue))
+          case .string(let strValue):
+            symbolTable.initVar(variableName, .string(strValue))
+        }
+        return NoOp(value: "", children: [])
       } else {
         // If no assignment, simply initialize the variable with default value
         symbolTable.initVar(variableName)
