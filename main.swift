@@ -42,11 +42,10 @@ func getIntFromEvalResult(_ evalResult: EvalResult) -> Int {
 func getStringFromEvalResult(_ evalResult: EvalResult) -> String {
   switch evalResult {
   case .integer(let intValue):
-    writeStderrAndExit("Expected string, got integer: \(intValue)")
+    return String(intValue)
   case .string(let stringValue):
     return stringValue
   }
-  return ""
 }
 
 protocol Node {
@@ -89,17 +88,31 @@ class BinOp: Node {
             return .integer((firstVal == 1 && secondVal == 1) ? 1 : 0)
           case "OR":
             return .integer((firstVal == 1 || secondVal == 1) ? 1 : 0)
+          case "CONCAT":
+            return .string(String(firstVal) + String(secondVal))
           default:
             return .integer(0)
         }
-      case let (.string(firstStr), .string(secondStr)):
-        if self.value == "CONCAT" {
-          return .string(firstStr + secondStr)
-        } else {
-          writeStderrAndExit("Unsupported operation on strings")
+      case let (.string(firstVal), .string(secondVal)):
+        switch self.value {
+          case "CONCAT":
+            return .string(firstVal + secondVal)
+          case "EQ":
+            return .integer((firstVal == secondVal) ? 1 : 0)
+          case "GT":
+            return .integer((firstVal > secondVal) ? 1 : 0)
+          case "LT":
+            return .integer((firstVal < secondVal) ? 1 : 0)
+          default:
+            writeStderrAndExit("Unsupported binary operation on strings")
         }
       default:
-        writeStderrAndExit("Type mismatch in binary operation")
+        switch self.value {
+          case "CONCAT":
+            return .string(getStringFromEvalResult(firstValue) + getStringFromEvalResult(secondValue))
+          default:
+            writeStderrAndExit("Unsupported binary operation on strings")
+        }
     }
     return .integer(0) // Default return in case of an error, consider a better error handling strategy
   }
@@ -309,8 +322,10 @@ class Tokenizer {
       } else if char == "\n" {
         self.next = Token(type: "EOL", value: "0")
       } else if char == "\"" {
+        position += 1
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
+
           if nextChar == "\"" {
             break
           } else {
@@ -373,6 +388,10 @@ class Parser {
       let factorValue = tokenizer.next.value
       tokenizer.selectNext()
       return IntVal(value: factorValue, children: [])
+    } else if tokenizer.next.type == "STRING" {
+      let factorValue = tokenizer.next.value
+      tokenizer.selectNext()
+      return StringVal(value: factorValue, children: [])
     } else if tokenizer.next.type == "IDENTIFIER" {
       let variableName = tokenizer.next.value
       let variableValue = symbolTable.getValue(variableName)
