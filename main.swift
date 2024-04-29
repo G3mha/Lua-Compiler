@@ -181,6 +181,37 @@ class NoOp: Node {
   }
 }
 
+class Declaration: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate() -> EvalResult {
+    // Evaluate the right-hand side of the declaration
+    let variableValue = self.children[0].evaluate()
+    
+    // Get the variable name
+    guard case let .string(variableName) = self.children[1].evaluate() else {
+      writeStderrAndExit("Invalid variable name in declaration")
+      return .integer(0) // Return default value
+    }
+    
+    // Set the variable value in the symbol table
+    if case let .integer(intValue) = variableValue {
+      symbolTable.setValue(variableName, .integer(intValue))
+    } else if case let .string(strValue) = variableValue {
+      symbolTable.setValue(variableName, .string(strValue))
+    }
+    
+    // Return the evaluated value
+    return variableValue
+  }
+}
+
 enum VariableTypes {
   case integer(Int)
   case string(String)
@@ -538,26 +569,28 @@ class Parser {
 
   private func parseDeclaration(symbolTable: SymbolTable) -> Node {
     if tokenizer.next.type == "IDENTIFIER" {
+      // Get the variable name
       let variableName = tokenizer.next.value
-      symbolTable.initVar(variableName)
       tokenizer.selectNext()
+      
+      // Check if there's an assignment
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
-        let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
-        switch variableValue {
-          case .string(let stringValue):
-            symbolTable.setValue(variableName, .string(stringValue))
-            tokenizer.selectNext()
-          case .integer(let intValue):
-            symbolTable.setValue(variableName, .integer(intValue))
-            tokenizer.selectNext()
-        }
+        // Parse the expression to initialize the variable
+        let expression = parseBoolExpression(symbolTable: symbolTable)
+        // Create a Declaration node with the expression and variable name as children
+        return Declaration(value: "", children: [expression, StringVal(value: variableName, children: [])])
+      } else {
+        // If no assignment, simply initialize the variable with default value
+        symbolTable.initVar(variableName)
+        return NoOp(value: "", children: [])
       }
     } else {
       writeStderrAndExit("Invalid variable name in declaration")
+      return NoOp(value: "", children: [])
     }
-    return NoOp(value: "", children: [])
   }
+
 
   private func parseAssignment(symbolTable: SymbolTable, variableName: String) -> Node {
     if tokenizer.next.type == "ASSIGN" {
