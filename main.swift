@@ -36,6 +36,7 @@ func getIntFromEvalResult(_ evalResult: EvalResult) -> Int {
   case .string(let stringValue):
     writeStderrAndExit("Expected integer, got string: \(stringValue)")
   }
+  return 0
 }
 
 func getStringFromEvalResult(_ evalResult: EvalResult) -> String {
@@ -45,6 +46,7 @@ func getStringFromEvalResult(_ evalResult: EvalResult) -> String {
   case .string(let stringValue):
     return stringValue
   }
+  return ""
 }
 
 protocol Node {
@@ -145,7 +147,7 @@ class IntVal: Node {
     } else {
       writeStderrAndExit("IntVal value could not cast String to Int")
     }
-
+    return .integer(0)
   }
 }
 
@@ -542,8 +544,6 @@ class Parser {
           case .integer(let intValue):
             symbolTable.setValue(variableName, .integer(intValue))
             tokenizer.selectNext()
-          default:
-            writeStderrAndExit("Invalid variable value in declaration")
         }
       }
     } else {
@@ -555,7 +555,15 @@ class Parser {
   private func parseAssignment(symbolTable: SymbolTable, variableName: String) -> Node {
     if tokenizer.next.type == "ASSIGN" {
       tokenizer.selectNext()
-      let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
+      let evalResult = parseBoolExpression(symbolTable: symbolTable).evaluate()
+      let variableValue: VariableTypes
+      switch evalResult {
+      case .integer(let intValue):
+        variableValue = .integer(intValue)
+      case .string(let stringValue):
+        variableValue = .string(stringValue)
+      }
+
       symbolTable.setValue(variableName, variableValue)
       return NoOp(value: "", children: [])
     } else {
