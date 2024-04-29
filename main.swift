@@ -38,6 +38,15 @@ func getIntFromEvalResult(_ evalResult: EvalResult) -> Int {
   }
 }
 
+func getStringFromEvalResult(_ evalResult: EvalResult) -> String {
+  switch evalResult {
+  case .integer(let intValue):
+    writeStderrAndExit("Expected string, got integer: \(intValue)")
+  case .string(let stringValue):
+    return stringValue
+  }
+}
+
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
@@ -526,14 +535,15 @@ class Parser {
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
         let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate()
-        if tokenizer.next.type == "STRING" {
-          symbolTable.setValue(variableName, .string(variableValue))
-          tokenizer.selectNext()
-        } else if tokenizer.next.type == "NUMBER" {
-          symbolTable.setValue(variableName, .integer(variableValue))
-          tokenizer.selectNext()
-        } else {
-          writeStderrAndExit("Invalid variable value in declaration")
+        switch variableValue {
+          case .string(let stringValue):
+            symbolTable.setValue(variableName, .string(stringValue))
+            tokenizer.selectNext()
+          case .integer(let intValue):
+            symbolTable.setValue(variableName, .integer(intValue))
+            tokenizer.selectNext()
+          default:
+            writeStderrAndExit("Invalid variable value in declaration")
         }
       }
     } else {
