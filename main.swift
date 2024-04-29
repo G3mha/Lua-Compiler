@@ -83,6 +83,8 @@ class BinOp: Node {
             return .integer((firstVal > secondVal) ? 1 : 0)
           case "LT":
             return .integer((firstVal < secondVal) ? 1 : 0)
+          case "EQ":
+            return .integer((firstVal == secondVal) ? 1 : 0)
           default:
             return .integer(0)
         }
@@ -291,7 +293,7 @@ class Tokenizer {
       } else if char.isLetter {
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
-          if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "true", "false"].contains(tokenWord) {
+          if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local", "true", "false"].contains(tokenWord) {
             break
           } else if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
             tokenWord += String(nextChar)
@@ -301,7 +303,7 @@ class Tokenizer {
           position += 1
         }
         position -= 1
-        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read"].contains(tokenWord) {
+        if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local"].contains(tokenWord) {
           self.next = Token(type: tokenWord.uppercased(), value: "0")
         } else if tokenWord == "true" || tokenWord == "false" {
           self.next = Token(type: "NUMBER", value: tokenWord == "true" ? "1" : "0")
@@ -558,10 +560,10 @@ class Parser {
       let evalResult = parseBoolExpression(symbolTable: symbolTable).evaluate()
       let variableValue: VariableTypes
       switch evalResult {
-      case .integer(let intValue):
-        variableValue = .integer(intValue)
-      case .string(let stringValue):
-        variableValue = .string(stringValue)
+        case .integer(let intValue):
+          variableValue = .integer(intValue)
+        case .string(let stringValue):
+          variableValue = .string(stringValue)
       }
 
       symbolTable.setValue(variableName, variableValue)
@@ -577,7 +579,7 @@ class Parser {
       let variableName = tokenizer.next.value
       tokenizer.selectNext()
       return parseAssignment(symbolTable: symbolTable, variableName: variableName)
-    } else if tokenizer.next.type == "DECLARATION" {
+    } else if tokenizer.next.type == "LOCAL" {
       tokenizer.selectNext()
       return parseDeclaration(symbolTable: symbolTable)
     } else if tokenizer.next.type == "PRINT" {
