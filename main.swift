@@ -48,7 +48,7 @@ class BinOp: Node {
     let firstValue = self.children[0].evaluate()
     let secondValue = self.children[1].evaluate()
     
-    switch (firstResult, secondResult) {
+    switch (firstValue, secondValue) {
       case let (.integer(firstVal), .integer(secondVal)):
         switch self.value {
           case "PLUS":
@@ -88,23 +88,27 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate() {
-    let value = self.children[0].evaluate()
+  func evaluate() -> EvalResult {
+    let result = self.children[0].evaluate()
 
-    if self.value == "NOT" {
-      return (value == 0) ? 1 : 0
-    }
-
-    if value is String {
+    switch result {
+    case .integer(let intValue):
+      switch self.value {
+      case "NOT":
+        return .integer((intValue == 0) ? 1 : 0)
+      case "PLUS":
+        return .integer(intValue)
+      case "MINUS":
+        return .integer(-intValue)
+      default:
+        writeStderrAndExit("Unsupported unary operation on integers")
+      }
+    case .string(_):
       writeStderrAndExit("Cannot perform unary arithmetic operations on Strings")
-    } 
-    
-    if self.value == "PLUS" {
-      return value
-    } else if self.value == "MINUS" {
-      return -value
     }
-    return 0
+
+    // Default return in case of an error or unsupported type
+    return .integer(0)
   }
 }
 
@@ -117,7 +121,7 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate() {
+  func evaluate() -> EvalResult {
     if let intValue = Int(self.value) {
       return intValue
     } else {
@@ -136,7 +140,7 @@ class StringVal: Node {
     self.children = children
   }
 
-  func evaluate() {
+  func evaluate() -> EvalResult {
     return self.value
   }
 }
@@ -150,7 +154,7 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate() {
+  func evaluate() -> EvalResult {
     return 0
   }
 }
