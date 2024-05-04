@@ -17,6 +17,9 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "compilers",
-            dependencies: []),
+            dependencies: [],
+            swiftSettings: [
+                .unsafeFlags(["-O"]),
+            ]),
     ]
 )

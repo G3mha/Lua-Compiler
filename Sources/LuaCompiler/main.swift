@@ -1,5 +1,6 @@
 import Foundation
 
+
 func main() {
   // Ensure there is at least one command line argument for the file path.
   guard CommandLine.arguments.count > 1 else {
@@ -13,3 +14,5 @@ func main() {
   let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
   let _ = ast.evaluate(symbolTable: symbolTable)
 }
+
+main()
