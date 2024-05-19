@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "compilers",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v13), .linux
     ],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
