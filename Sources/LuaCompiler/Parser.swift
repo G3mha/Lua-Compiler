@@ -302,6 +302,40 @@ class Parser {
       } else {
         writeStderrAndExit("Unexpected token after END in IF statement")
       }
+    } else if tokenizer.next.type == "FUNCTION" {
+      tokenizer.selectNext()
+      if tokenizer.next.type == "IDENTIFIER" {
+        let functionName = tokenizer.next.value
+        tokenizer.selectNext()
+        if tokenizer.next.type == "LPAREN" {
+          tokenizer.selectNext()
+          if tokenizer.next.type == "RPAREN" {
+            tokenizer.selectNext()
+            if tokenizer.next.type == "EOL" {
+              tokenizer.selectNext()
+              var statements: [Node] = []
+              while tokenizer.next.type != "END" {
+                let statement = parseStatement(symbolTable: symbolTable)
+                statements.append(statement)
+              }
+              if tokenizer.next.type == "END" {
+                tokenizer.selectNext()
+                return NoOp(value: "", children: statements)
+              } else {
+                writeStderrAndExit("Missing END after FUNCTION statement")
+              }
+            } else {
+              writeStderrAndExit("Missing EOL after function declaration")
+            }
+          } else {
+            writeStderrAndExit("Missing closing parenthesis for function declaration")
+          }
+        } else {
+          writeStderrAndExit("Missing opening parenthesis for function declaration")
+        }
+      } else {
+        writeStderrAndExit("Invalid function name in function declaration")
+      }
     } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])

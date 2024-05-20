@@ -178,3 +178,83 @@ class Declaration: Node {
     return variableValue
   }
 }
+
+class FuncDec: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable) -> EvalResult {
+    // Get the function name
+    guard case let .string(funcName) = self.children[0].evaluate(symbolTable: symbolTable) else {
+      writeStderrAndExit("Invalid function name in function declaration")
+      return .integer(0) // Return default value
+    }
+    
+    // Get the function arguments
+    guard case let .string(args) = self.children[1].evaluate(symbolTable: symbolTable) else {
+      writeStderrAndExit("Invalid function arguments in function declaration")
+      return .integer(0) // Return default value
+    }
+    
+    // Get the function body
+    let funcBody = self.children[2]
+    
+    // Set the function in the symbol table
+    symbolTable.setFunction(funcName, args, funcBody)
+    
+    // Return the function name
+    return .string(funcName)
+  }
+}
+
+class FuncCall: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable) -> EvalResult {
+    // Get the function name
+    guard case let .string(funcName) = self.children[0].evaluate(symbolTable: symbolTable) else {
+      writeStderrAndExit("Invalid function name in function call")
+      return .integer(0) // Return default value
+    }
+    
+    // Get the function arguments
+    guard case let .string(args) = self.children[1].evaluate(symbolTable: symbolTable) else {
+      writeStderrAndExit("Invalid function arguments in function call")
+      return .integer(0) // Return default value
+    }
+    
+    // Get the function from the symbol table
+    guard let func = symbolTable.getFunction(funcName) else {
+      writeStderrAndExit("Function \(funcName) not found")
+      return .integer(0) // Return default value
+    }
+    
+    // Evaluate the function body
+    return func.evaluate(symbolTable: symbolTable)
+  }
+}
+
+class Return: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable) -> EvalResult {
+    return self.children[0].evaluate(symbolTable: symbolTable)
+  }
+}
