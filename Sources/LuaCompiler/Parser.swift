@@ -283,38 +283,52 @@ class Parser {
       }
     } else if tokenizer.next.type == "FUNCTION" {
       tokenizer.selectNext()
-      if tokenizer.next.type == "IDENTIFIER" {
-        let functionName = tokenizer.next.value
-        tokenizer.selectNext()
-        if tokenizer.next.type == "LPAREN" {
-          tokenizer.selectNext()
-          if tokenizer.next.type == "RPAREN" {
-            tokenizer.selectNext()
-            if tokenizer.next.type == "EOL" {
-              tokenizer.selectNext()
-              var statements: [Node] = []
-              while tokenizer.next.type != "END" {
-                let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
-                statements.append(statement)
-              }
-              if tokenizer.next.type == "END" {
-                tokenizer.selectNext()
-                return NoOp(value: "", children: statements)
-              } else {
-                fatalError("Missing END after FUNCTION statement")
-              }
-            } else {
-              fatalError("Missing EOL after function declaration")
-            }
-          } else {
-            fatalError("Missing closing parenthesis for function declaration")
-          }
-        } else {
-          fatalError("Missing opening parenthesis for function declaration")
-        }
-      } else {
+      if tokenizer.next.type != "IDENTIFIER" {
         fatalError("Invalid function name in function declaration")
       }
+      let functionName = tokenizer.next.value
+      
+      tokenizer.selectNext()
+      if tokenizer.next.type != "LPAREN" {
+        fatalError("Missing opening parenthesis for function declaration")
+      }
+      
+      tokenizer.selectNext()
+      // Parse function arguments
+      var arguments: [String] = []
+      while tokenizer.next.type != "RPAREN" {
+        if tokenizer.next.type == "IDENTIFIER" {
+          arguments.append(tokenizer.next.value)
+          tokenizer.selectNext()
+          if tokenizer.next.type == "COMMA" {
+          } else if tokenizer.next.type != "RPAREN" {
+            fatalError("Missing comma between function arguments")
+          }
+        } else {
+          fatalError("Invalid argument name in function declaration")
+        }
+      }
+      if tokenizer.next.type != "RPAREN" {
+        fatalError("Missing closing parenthesis for function declaration")
+      }
+
+      tokenizer.selectNext()
+      if tokenizer.next.type != "EOL" {
+        fatalError("Missing EOL after function arguments")
+      }
+
+      // Parse function body
+      var statements: [Node] = []
+      while tokenizer.next.type != "END" {
+        let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+        statements.append(statement)
+      }
+      if tokenizer.next.type != "END" {
+        fatalError("Missing END after function declaration")
+      }
+    } else if tokenizer.next.type == "RETURN" {
+      tokenizer.selectNext()
+      return parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
     } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
