@@ -1,11 +1,11 @@
 class FuncTable {
   private var table: [String: Any] = [:]
 
-  func setFunction(function: String, value: Any) {
-    table[function] = value
+  func setFunction(functionName: String, function: Any) {
+    table[functionName] = function
   }
 
-  func getFunction(function: String) -> Any? {
-    return table[function]
+  func getFunction(functionName: String) -> Any? {
+    return table[functionName]
   }
 }
