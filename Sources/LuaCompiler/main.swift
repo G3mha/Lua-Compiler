@@ -12,7 +12,7 @@ func main() {
   let symbolTable = SymbolTable()
   let funcTable = FuncTable()
   let myParser = Parser()
-  let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
+  let ast = myParser.run(code: fileContent, symbolTable: symbolTable, funcTable: funcTable)
   let _ = ast.evaluate(symbolTable: symbolTable, funcTable: funcTable)
 }
 

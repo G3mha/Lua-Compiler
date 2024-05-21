@@ -13,7 +13,9 @@ class Tokenizer {
     if position < source.count {
       let char = source[source.index(source.startIndex, offsetBy: position)]
       var tokenWord = ""
-      if char == "+" {
+      if char == "," {
+        self.next = Token(type: "COMMA", value: "0")
+      } else if char == "+" {
         self.next = Token(type: "PLUS", value: "0")
       } else if char == "-" {
         self.next = Token(type: "MINUS", value: "0")
