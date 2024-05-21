@@ -252,19 +252,10 @@ class Parser {
     }
   }
 
-
   private func parseAssignment(symbolTable: SymbolTable, variableName: String) -> Node {
     if tokenizer.next.type == "ASSIGN" {
       tokenizer.selectNext()
-      let evalResult = parseBoolExpression(symbolTable: symbolTable).evaluate(symbolTable: symbolTable)
-      let variableValue: VariableTypes
-      switch evalResult {
-        case .integer(let intValue):
-          variableValue = .integer(intValue)
-        case .string(let stringValue):
-          variableValue = .string(stringValue)
-      }
-
+      let variableValue = parseBoolExpression(symbolTable: symbolTable).evaluate(symbolTable: symbolTable)
       symbolTable.setValue(variableName, variableValue)
       return NoOp(value: "", children: [])
     } else {
