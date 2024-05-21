@@ -1,7 +1,7 @@
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
-  func evaluate(symbolTable: SymbolTable) -> Any
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any
 }
 
 class BinOp: Node {
@@ -13,9 +13,9 @@ class BinOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
-    let secondValue = self.children[1].evaluate(symbolTable: symbolTable)
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let firstValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    let secondValue = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
 
     if firstValue is Integer && secondValue is Integer {
       switch self.value {
@@ -40,7 +40,7 @@ class BinOp: Node {
         case "CONCAT":
           return firstValue + secondValue
         default:
-          writeStderrAndExit("Unsupported binary operation on integers")
+          fatalError("Unsupported binary operation on integers")
       }
     } else if firstValue is String && secondValue is String {
       switch self.value {
@@ -53,14 +53,14 @@ class BinOp: Node {
         case "LT":
           return (firstValue < secondValue) ? 1 : 0
         default:
-          writeStderrAndExit("Unsupported binary operation on strings")
+          fatalError("Unsupported binary operation on strings")
       }
     } else {
       switch self.value {
         case "CONCAT":
           return String(firstValue) + String(secondValue)
         default:
-          writeStderrAndExit("Unsupported binary operation on strings")
+          fatalError("Unsupported binary operation on strings")
       }
     }
     return 0
@@ -76,11 +76,11 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    let result = self.children[0].evaluate(symbolTable: symbolTable)
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let result = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
 
     if result is String {
-      writeStderrAndExit("Cannot perform unary arithmetic operations on Strings")
+      fatalError("Cannot perform unary arithmetic operations on Strings")
     }
 
     if result == "NOT" {
@@ -90,7 +90,7 @@ class UnOp: Node {
     } else if result == "PLUS" {
       return result
     } else {
-      writeStderrAndExit("Unsupported unary operation on integers")
+      fatalError("Unsupported unary operation on integers")
     }
     return 0
   }
@@ -105,8 +105,8 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    return self.value
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    return Int(self.value)
   }
 }
 
@@ -119,8 +119,8 @@ class StringVal: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    return self.value
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    return String(self.value)
   }
 }
 
@@ -133,7 +133,7 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     return 0
   }
 }
@@ -147,11 +147,11 @@ class VarDec: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
 
-    guard case let variableName = self.children[1].evaluate(symbolTable: symbolTable) else {
-      writeStderrAndExit("Invalid variable name in declaration")
+    guard case let variableName = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
+      fatalError("Invalid variable name in declaration")
       return 0
     }
 
@@ -170,14 +170,14 @@ class FuncDec: Node {
     self.children = children
   }
 
-  func evaluate(funcTable: FuncTable) -> Any {
-    guard case let funcName = self.children[0].evaluate(funcTable: FuncTable) else {
-      writeStderrAndExit("Invalid function name in function declaration")
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    guard case let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
+      fatalError("Invalid function name in function declaration")
       return 0
     }
     
-    guard case let funcArgs = self.children[1].evaluate(funcTable: FuncTable) else {
-      writeStderrAndExit("Invalid function arguments in function declaration")
+    guard case let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
+      fatalError("Invalid function arguments in function declaration")
       return 0
     }
 
@@ -197,23 +197,30 @@ class FuncCall: Node {
     self.children = children
   }
 
-  func evaluate(funcTable: FuncTable) -> Any {
-    guard case let funcName = self.children[0].evaluate(funcTable: FuncTable) else { 
-      writeStderrAndExit("Invalid function name in function call")
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    guard case let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) else { 
+      fatalError("Invalid function name in function call")
+      return 0
+    }
+    
+    guard case let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
+      fatalError("Invalid function arguments in function call")
       return 0
     }
 
-    guard case let funcArgs = self.children[1].evaluate(funcTable: FuncTable) else {
-      writeStderrAndExit("Invalid function arguments in function call")
-      return 0
+    let (funcArgsFromTable, funcBodyFromTable) = FuncTable.getFunction(funcName)!
+
+    if funcArgs.count != funcArgsFromTable.count {
+      fatalError("Invalid number of arguments in function call")
     }
+
 
     guard let function = FuncTable.getFunction(funcName) else {
-      writeStderrAndExit("Function \(funcName) not found")
+      fatalError("Function \(funcName) not found")
       return 0
     }
 
-    return function.evaluate(funcTable: FuncTable)
+    return function.evaluate(symbolTable: symbolTable, funcTable: funcTable)
   }
 }
 
@@ -226,7 +233,7 @@ class Return: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable) -> Any {
-    return self.children[0].evaluate(symbolTable: symbolTable)
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    return self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
   }
 }

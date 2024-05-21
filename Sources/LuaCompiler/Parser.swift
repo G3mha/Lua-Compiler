@@ -5,7 +5,7 @@ class Parser {
     self.tokenizer = Tokenizer(source: "")
   }
 
-  private func parseFactor(symbolTable: SymbolTable) -> Node {
+  private func parseFactor(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
     if tokenizer.next.type == "NUMBER" {
       let factorValue = tokenizer.next.value
       tokenizer.selectNext()
@@ -25,10 +25,10 @@ class Parser {
           case .string(let strValue):
             return StringVal(value: strValue, children: [])
           case .nilValue:
-            writeStderrAndExit("Variable \(variableName) is initialized, but has no value assigned")
+            fatalError("Variable \(variableName) is initialized, but has no value assigned")
         }
       } else {
-        writeStderrAndExit("Variable \(variableName) not found in symbol table")
+        fatalError("Variable \(variableName) not found in symbol table")
       }
     } else if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "NOT" {
       let operatorType = tokenizer.next.type
@@ -41,7 +41,7 @@ class Parser {
         tokenizer.selectNext()
         return result
       } else {
-        writeStderrAndExit("Missing closing parenthesis")
+        fatalError("Missing closing parenthesis")
       }
     } else if tokenizer.next.type == "READ" {
       tokenizer.selectNext()
@@ -59,16 +59,16 @@ class Parser {
           } else if let inputInt = Int(input ?? "") {
             return IntVal(value: String(inputInt), children: [])
           } else {
-            writeStderrAndExit("Read value could not cast String to Int")
+            fatalError("Read value could not cast String to Int")
           }
         } else {
-          writeStderrAndExit("Missing closing parenthesis for read statement")
+          fatalError("Missing closing parenthesis for read statement")
         }
       } else {
-        writeStderrAndExit("Missing opening parenthesis for read statement")
+        fatalError("Missing opening parenthesis for read statement")
       }
     } else {
-      writeStderrAndExit("Invalid factor: (\(tokenizer.next.type), \(tokenizer.next.value))")
+      fatalError("Invalid factor: (\(tokenizer.next.type), \(tokenizer.next.value))")
     }
     return NoOp(value: "", children: [])
   }
@@ -153,13 +153,13 @@ class Parser {
           tokenizer.selectNext()
           return NoOp(value: "", children: statements)
         } else {
-          writeStderrAndExit("Missing END after IF statement")
+          fatalError("Missing END after IF statement")
         }
       } else {
-        writeStderrAndExit("Missing EOL after THEN")
+        fatalError("Missing EOL after THEN")
       }
     } else {
-      writeStderrAndExit("Missing THEN within if statement")
+      fatalError("Missing THEN within if statement")
     }
     return NoOp(value: "", children: [])
   }
@@ -186,13 +186,13 @@ class Parser {
             tokenizer.selectNext()
             conditionValue = parseBoolExpression(symbolTable: symbolTable).evaluate(symbolTable: symbolTable)
           } else {
-            writeStderrAndExit("Missing END after WHILE loop")
+            fatalError("Missing END after WHILE loop")
           }
         } else {
-          writeStderrAndExit("Missing EOL after DO")
+          fatalError("Missing EOL after DO")
         }
       } else {
-        writeStderrAndExit("Missing DO within while statement")
+        fatalError("Missing DO within while statement")
       }
     }
     tokenizer.position = whileEndPosition
@@ -214,10 +214,10 @@ class Parser {
         }
         return NoOp(value: "", children: [])
       } else {
-        writeStderrAndExit("Missing closing parenthesis for print statement")
+        fatalError("Missing closing parenthesis for print statement")
       }
     } else {
-      writeStderrAndExit("Missing opening parenthesis for print statement")
+      fatalError("Missing opening parenthesis for print statement")
     }
     return NoOp(value: "", children: [])
   }
@@ -247,7 +247,7 @@ class Parser {
         return NoOp(value: "", children: [])
       }
     } else {
-      writeStderrAndExit("Invalid variable name in declaration")
+      fatalError("Invalid variable name in declaration")
       return NoOp(value: "", children: [])
     }
   }
@@ -259,7 +259,7 @@ class Parser {
       symbolTable.setValue(variableName, variableValue)
       return NoOp(value: "", children: [])
     } else {
-      writeStderrAndExit("Missing assignment operator")
+      fatalError("Missing assignment operator")
     }
     return NoOp(value: "", children: [])
   }
@@ -282,7 +282,7 @@ class Parser {
         tokenizer.selectNext()
         return result
       } else {
-        writeStderrAndExit("Unexpected token after END in WHILE statement")
+        fatalError("Unexpected token after END in WHILE statement")
       }
     } else if tokenizer.next.type == "IF" {
       tokenizer.selectNext()
@@ -291,7 +291,7 @@ class Parser {
         tokenizer.selectNext()
         return result
       } else {
-        writeStderrAndExit("Unexpected token after END in IF statement")
+        fatalError("Unexpected token after END in IF statement")
       }
     } else if tokenizer.next.type == "FUNCTION" {
       tokenizer.selectNext()
@@ -313,25 +313,25 @@ class Parser {
                 tokenizer.selectNext()
                 return NoOp(value: "", children: statements)
               } else {
-                writeStderrAndExit("Missing END after FUNCTION statement")
+                fatalError("Missing END after FUNCTION statement")
               }
             } else {
-              writeStderrAndExit("Missing EOL after function declaration")
+              fatalError("Missing EOL after function declaration")
             }
           } else {
-            writeStderrAndExit("Missing closing parenthesis for function declaration")
+            fatalError("Missing closing parenthesis for function declaration")
           }
         } else {
-          writeStderrAndExit("Missing opening parenthesis for function declaration")
+          fatalError("Missing opening parenthesis for function declaration")
         }
       } else {
-        writeStderrAndExit("Invalid function name in function declaration")
+        fatalError("Invalid function name in function declaration")
       }
     } else if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
     } else {
-      writeStderrAndExit("Invalid statement")
+      fatalError("Invalid statement")
     }
     return NoOp(value: "", children: [])
   }

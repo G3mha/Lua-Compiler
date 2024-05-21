@@ -3,7 +3,7 @@ class SymbolTable {
 
   func initVar(_ variable: String, _ value: Any = .nilValue) {
     if variables.keys.contains(variable) {
-      writeStderrAndExit("Variable already initialized: \(variable)")
+      fatalError("Variable already initialized: \(variable)")
     } else {
       variables[variable] = value
     }
@@ -13,7 +13,7 @@ class SymbolTable {
     if let _ = variables[variable] {
       variables[variable] = value
     } else {
-      writeStderrAndExit("Attempt to set an uninitialized variable: \(variable)")
+      fatalError("Attempt to set an uninitialized variable: \(variable)")
     }
   }
 
@@ -21,7 +21,7 @@ class SymbolTable {
     if let value = variables[variable] {
       return value
     } else {
-      writeStderrAndExit("Variable not found in SymbolTable: \(variable)")
+      fatalError("Variable not found in SymbolTable: \(variable)")
       return nil
     }
   }

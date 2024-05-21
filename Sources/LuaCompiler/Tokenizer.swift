@@ -41,7 +41,7 @@ class Tokenizer {
           self.next = Token(type: "CONCAT", value: "0")
           position += 1
         } else {
-          writeStderrAndExit("Invalid character \(tokenWord)")
+          fatalError("Invalid character \(tokenWord)")
         }
       } else if char == "\n" {
         self.next = Token(type: "EOL", value: "0")
@@ -52,14 +52,14 @@ class Tokenizer {
           if nextChar == "\"" {
             break
           } else if nextChar == "\n"{
-            writeStderrAndExit("Forgot to close string with \"")
+            fatalError("Forgot to close string with \"")
           } else {
             tokenWord += String(nextChar)
           }
           position += 1
         }
         if source[source.index(source.startIndex, offsetBy: position)] != "\"" {
-          writeStderrAndExit("Forgot to close string with \"")
+          fatalError("Forgot to close string with \"")
         }
         self.next = Token(type: "STRING", value: tokenWord)
       } else if char.isNumber {
@@ -95,7 +95,7 @@ class Tokenizer {
           self.next = Token(type: "IDENTIFIER", value: tokenWord)
         }
       } else {
-        writeStderrAndExit("Invalid character \(tokenWord)")
+        fatalError("Invalid character \(tokenWord)")
       }
       position += 1
     } else {
