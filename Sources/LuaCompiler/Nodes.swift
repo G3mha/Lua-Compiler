@@ -214,13 +214,12 @@ class FuncCall: Node {
       fatalError("Invalid number of arguments in function call")
     }
 
-
-    guard let function = FuncTable.getFunction(funcName) else {
-      fatalError("Function \(funcName) not found")
-      return 0
+    let localSymbolTable = SymbolTable()
+    for i in 0..<funcArgs.count {
+      localSymbolTable.initVar(funcArgsFromTable[i], funcArgs[i].evaluate(symbolTable: symbolTable, funcTable: funcTable))
     }
 
-    return function.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    return funcBodyFromTable.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
   }
 }
 
