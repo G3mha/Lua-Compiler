@@ -190,20 +190,6 @@ class VarAccess: Node {
   }
 }
 
-class FuncArgs: Node {
-  var value: String
-  var children: [Node]
-
-  init(value: String, children: [Node]) {
-    self.value = value
-    self.children = children
-  }
-
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    self.children[0]
-  }
-}
-
 class FuncDec: Node {
   var value: String
   var children: [Node]
@@ -346,7 +332,13 @@ class PrintOp: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let printValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-    print(printValue)
+    if let printInt = printValue as? Int {
+      print(printInt)
+    } else if let printString = printValue as? String {
+      print(printString)
+    } else {
+      fatalError("Unsupported type for print operation")
+    }
     return 0
   }
 }

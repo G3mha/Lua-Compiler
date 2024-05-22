@@ -113,7 +113,7 @@ class Parser {
   }
 
   private func parseStatement(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    if tokenizer.next.type == "NEWLINE" {
+    if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
     } else if tokenizer.next.type == "IDENTIFIER" {
@@ -159,7 +159,7 @@ class Parser {
         fatalError("Missing DO after WHILE condition")
       }
       tokenizer.selectNext()
-      if tokenizer.next.type != "NEWLINE" {
+      if tokenizer.next.type != "EOL" {
         fatalError("Missing EOL after DO")
       }
       tokenizer.selectNext()
@@ -177,7 +177,7 @@ class Parser {
         fatalError("Missing THEN after IF condition")
       }
       tokenizer.selectNext()
-      if tokenizer.next.type != "NEWLINE" {
+      if tokenizer.next.type != "EOL" {
         fatalError("Missing EOL after THEN")
       }
       tokenizer.selectNext()
