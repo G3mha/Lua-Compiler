@@ -5,7 +5,6 @@ func main() {
   // Ensure there is at least one command line argument for the file path.
   guard CommandLine.arguments.count > 1 else {
     fatalError("Please provide a .lua file path.")
-    return // This is not necessary, but it makes the compiler happy.
   }
 
   let fileContent = readFile(CommandLine.arguments[1])

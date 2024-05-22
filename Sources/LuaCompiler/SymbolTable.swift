@@ -1,28 +1,31 @@
+import Foundation
+
 class SymbolTable {
-  private var variables: [String: Any] = [:]
+  private var variables: [String: Any?] = [:]
 
-  func initVar(_ variable: String, _ value: Any = .nilValue) {
-    if variables.keys.contains(variable) {
-      fatalError("Variable already initialized: \(variable)")
+  func initVar(_ variableName: String) {
+    if variables.keys.contains(variableName) {
+      fatalError("Variable already initialized: \(variableName)")
     } else {
-      variables[variable] = value
+      variables[variableName] = nil
     }
   }
 
-  func setValue(_ variable: String, _ value: Any) {
-    if let _ = variables[variable] {
-      variables[variable] = value
+  func setValue(_ variableName: String, _ variableValue: Any) {
+    if variables.keys.contains(variableName) {
+      variables[variableName] = variableValue
     } else {
-      fatalError("Attempt to set an uninitialized variable: \(variable)")
+      fatalError("Variable not initialized: \(variableName)")
     }
   }
 
-  func getValue(_ variable: String) -> Any? {
-    if let value = variables[variable] {
-      return value
+  func getValue(_ variableName: String) -> Any {
+    if !variables.keys.contains(variableName) {
+      fatalError("Variable not initialized: \(variableName)")
+    } else if let variableValue = variables[variableName] {
+      return variableValue
     } else {
-      fatalError("Variable not found in SymbolTable: \(variable)")
-      return nil
+      fatalError("Value not assigned to variable: \(variableName)")
     }
   }
 }

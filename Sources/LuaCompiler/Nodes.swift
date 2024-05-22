@@ -4,6 +4,23 @@ protocol Node {
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any
 }
 
+class Block: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    for node in self.children {
+      let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    }
+    return 0
+  }
+}
+
 class BinOp: Node {
   var value: String
   var children: [Node]
@@ -148,10 +165,26 @@ class VarDec: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    let variableName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
+    symbolTable.initVar(variableName)
+    return 0
+  }
+}
 
+class VarAssign: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    let variableName = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
     guard case let variableName = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
-      fatalError("Invalid variable name in declaration")
+      fatalError("Invalid variable name in assignment")
       return 0
     }
 
@@ -170,18 +203,19 @@ class FuncDec: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    guard case let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
-      fatalError("Invalid function name in function declaration")
-      return 0
-    }
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Int {
+    let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
+    let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! [String]
+    let funcBody = self.children[2].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! [Node]
     
-    guard case let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
+    guard case let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) as? [String] else {
       fatalError("Invalid function arguments in function declaration")
-      return 0
     }
 
-    let funcBody = self.children[2]
+    guard case let funcBody = self.children[2].evaluate(symbolTable: symbolTable, funcTable: funcTable) as? [Node] else {
+      fatalError("Invalid function body in function declaration")
+    }
+
     funcTable.setFunction(funcName, funcArgs, funcBody)
 
     return 0
@@ -198,27 +232,65 @@ class FuncCall: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    guard case let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) else { 
-      fatalError("Invalid function name in function call")
-      return 0
+    let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
+    let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+
+    if let funcData = funcTable.getFunction(funcName) {
+      let funcArgsFromTable = funcData.0
+      let funcBodyFromTable = funcData.1
+
+      if (funcArgs as? [Node])?.count != (funcArgsFromTable as? [Node])?.count {
+        fatalError("Invalid number of arguments in function call")
+      }
+
+      let localSymbolTable = SymbolTable()
+      if let funcArgs = funcArgs as? [Node] {
+        for i in 0..<funcArgs.count {
+          let evaluatedValue = funcArgs[i].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+          let unwrappedFuncArgsFromTable = funcArgsFromTable.compactMap { $0 }
+          localSymbolTable.initVar(unwrappedFuncArgsFromTable[i], evaluatedValue)
+        }
+      } else {
+        fatalError("funcArgs is not of type [Node]")
+      }
+      var result: Any = 0
+      for node in funcBodyFromTable {
+        if let unwrappedNode = node {
+          result = unwrappedNode.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
+        } else {
+          fatalError("Invalid function body")
+        }
+      }
+      return result
+    } else {
+      fatalError("Invalid function name")
     }
-    
-    guard case let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) else {
-      fatalError("Invalid function arguments in function call")
-      return 0
+  }
+}
+
+class WhileOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let condition = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    let body = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+
+    if condition is Int {
+      while condition as! Int == 1 {
+        for node in body as! [Node] {
+          let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+        }
+      }
+    } else {
+      fatalError("Invalid condition in while loop")
     }
 
-    let (funcArgsFromTable, funcBodyFromTable) = FuncTable.getFunction(funcName)!
-
-    if funcArgs.count != funcArgsFromTable.count {
-      fatalError("Invalid number of arguments in function call")
-    }
-
-    let localSymbolTable = SymbolTable()
-    for i in 0..<funcArgs.count {
-      localSymbolTable.initVar(funcArgsFromTable[i], funcArgs[i].evaluate(symbolTable: symbolTable, funcTable: funcTable))
-    }
-
-    return funcBodyFromTable.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
+    return 0
   }
 }

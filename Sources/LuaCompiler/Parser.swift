@@ -123,7 +123,7 @@ class Parser {
   }
 
   private func parseIf(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
     if tokenizer.next.type == "THEN" {
       tokenizer.selectNext()
       if tokenizer.next.type == "EOL" {
@@ -166,7 +166,7 @@ class Parser {
   private func parseWhile(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
     let whileStartPosition = tokenizer.position-1
     var whileEndPosition = tokenizer.position-1
-    var conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    var conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
     
     var statements: [Node] = []
 
@@ -183,7 +183,7 @@ class Parser {
             whileEndPosition = tokenizer.position
             tokenizer.position = whileStartPosition
             tokenizer.selectNext()
-            conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
+            conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
           } else {
             fatalError("Missing END after WHILE loop")
           }
@@ -230,7 +230,6 @@ class Parser {
         symbolTable.initVar(variableName, variableValue)
         return NoOp(value: "", children: [])
       } else {
-        // If no assignment, simply initialize the variable with default value
         symbolTable.initVar(variableName)
         return NoOp(value: "", children: [])
       }
@@ -326,6 +325,10 @@ class Parser {
       if tokenizer.next.type != "END" {
         fatalError("Missing END after function declaration")
       }
+
+      tokenizer.selectNext()
+      funcTable.setFunction(functionName, arguments, statements)
+      return FuncDec(value: functionName, children: [StringVal(value: functionName, children: []), StringVal(value: arguments.joined(separator: ", "), children: []), NoOp(value: "", children: statements)])
     } else if tokenizer.next.type == "RETURN" {
       tokenizer.selectNext()
       return parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)

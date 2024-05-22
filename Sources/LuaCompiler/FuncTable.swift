@@ -1,11 +1,11 @@
 class FuncTable {
-  private var table: [String: Any] = [:]
+  private var table: [String: ([String], [Node])] = [:]
 
-  func setFunction(functionName: String, functionArgs: Any, functionBody: Any) {
+  func setFunction(_ functionName: String, _ functionArgs: [String], _ functionBody: [Node]) {
     table[functionName] = (functionArgs, functionBody)
   }
 
-  func getFunction(functionName: String) -> Any? {
+  func getFunction(_ functionName: String) -> (functionArgs: [String], functionBody: [Node]) {
     return table[functionName]
   }
 }
