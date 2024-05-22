@@ -44,32 +44,18 @@ class Parser {
       }
     } else if tokenizer.next.type == "READ" {
       tokenizer.selectNext()
-      if tokenizer.next.type == "LPAREN" {
-        tokenizer.selectNext()
-        if tokenizer.next.type == "RPAREN" {
-          tokenizer.selectNext()
-          // Read line from stdin, then cast to Int and set as value
-          let input = readLine()
-          if input == "true" {
-            return IntVal(value: "1", children: [])
-          } else if input == "false" {
-            return IntVal(value: "0", children: [])
-          // Try to cast input to Int, if it fails, print error and exit
-          } else if let inputInt = Int(input ?? "") {
-            return IntVal(value: String(inputInt), children: [])
-          } else {
-            fatalError("Read value could not cast String to Int")
-          }
-        } else {
-          fatalError("Missing closing parenthesis for read statement")
-        }
-      } else {
+      if tokenizer.next.type != "LPAREN" {
         fatalError("Missing opening parenthesis for read statement")
       }
+      tokenizer.selectNext()
+      if tokenizer.next.type != "RPAREN" {
+        fatalError("Missing closing parenthesis for read statement")
+      }
+      tokenizer.selectNext()
+      return ReadOp(value: "READ", children: [])
     } else {
       fatalError("Invalid factor: (\(tokenizer.next.type), \(tokenizer.next.value))")
     }
-    return NoOp(value: "", children: [])
   }
 
   private func parseTerm(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
