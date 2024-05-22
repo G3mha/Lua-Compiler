@@ -112,224 +112,255 @@ class Parser {
     return result
   }
 
-  private func parseIf(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
-    if tokenizer.next.type == "THEN" {
+  private func parseStatement(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+    if tokenizer.next.type == "NEWLINE" {
       tokenizer.selectNext()
-      if tokenizer.next.type == "EOL" {
-        tokenizer.selectNext()
-        var statements: [Node] = []
-        while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
-          if condition == 1 {
-            let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
-            statements.append(statement)
-          } else {
-            tokenizer.selectNext()
-          }
-        }
-        if tokenizer.next.type == "ELSE" {
-          tokenizer.selectNext()
-          while tokenizer.next.type != "END" {
-            if condition == 0 {
-              let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
-              statements.append(statement)
-            } else {
-              tokenizer.selectNext()
-            }
-          }
-        }
-        if tokenizer.next.type == "END" {
-          tokenizer.selectNext()
-          return NoOp(value: "", children: statements)
-        } else {
-          fatalError("Missing END after IF statement")
-        }
-      } else {
-        fatalError("Missing EOL after THEN")
-      }
-    } else {
-      fatalError("Missing THEN within if statement")
-    }
-    return NoOp(value: "", children: [])
-  }
-
-  private func parseWhile(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    let whileStartPosition = tokenizer.position-1
-    var whileEndPosition = tokenizer.position-1
-    var conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
-    
-    var statements: [Node] = []
-
-    while conditionValue == 1 {
-      if tokenizer.next.type == "DO" {
-        tokenizer.selectNext()
-        if tokenizer.next.type == "EOL" {
-          tokenizer.selectNext()
-          while tokenizer.next.type != "END" {
-            let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
-            statements.append(statement)
-          }
-          if tokenizer.next.type == "END" {
-            whileEndPosition = tokenizer.position
-            tokenizer.position = whileStartPosition
-            tokenizer.selectNext()
-            conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
-          } else {
-            fatalError("Missing END after WHILE loop")
-          }
-        } else {
-          fatalError("Missing EOL after DO")
-        }
-      } else {
-        fatalError("Missing DO within while statement")
-      }
-    }
-    tokenizer.position = whileEndPosition
-    tokenizer.selectNext()
-    return NoOp(value: "", children: statements)
-  }
-
-  private func parsePrint(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    if tokenizer.next.type == "LPAREN" {
+      return NoOp(value: "", children: [])
+    } else if tokenizer.next.type == "IDENTIFIER" {
+      let name = tokenizer.next.value
       tokenizer.selectNext()
-      let printValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
-      if tokenizer.next.type == "RPAREN" {
-        tokenizer.selectNext()
-        print(printValue)
-        return NoOp(value: "", children: [])
-      } else {
-        fatalError("Missing closing parenthesis for print statement")
-      }
-    } else {
-      fatalError("Missing opening parenthesis for print statement")
-    }
-    return NoOp(value: "", children: [])
-  }
-
-  private func parseDeclaration(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    if tokenizer.next.type == "IDENTIFIER" {
-      let variableName = tokenizer.next.value
-      tokenizer.selectNext()
-      
-      // Check if there's an assignment
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
-        // Parse the expression to initialize the variable
         let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-        let variableValue = expression.evaluate(symbolTable: symbolTable, funcTable: funcTable)
-        symbolTable.initVar(variableName, variableValue)
-        return NoOp(value: "", children: [])
-      } else {
-        symbolTable.initVar(variableName)
-        return NoOp(value: "", children: [])
-      }
-    } else {
-      fatalError("Invalid variable name in declaration")
-      return NoOp(value: "", children: [])
-    }
-  }
-
-  private func parseAssignment(symbolTable: SymbolTable, funcTable: FuncTable, variableName: String) -> Node {
-    if tokenizer.next.type == "ASSIGN" {
-      tokenizer.selectNext()
-      let variableValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
-      symbolTable.setValue(variableName, variableValue)
-      return NoOp(value: "", children: [])
-    } else {
-      fatalError("Missing assignment operator")
-    }
-    return NoOp(value: "", children: [])
-  }
-
-  private func parseStatement(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    if tokenizer.next.type == "IDENTIFIER" {
-      let variableName = tokenizer.next.value
-      tokenizer.selectNext()
-      return parseAssignment(symbolTable: symbolTable, funcTable: funcTable, variableName: variableName)
-    } else if tokenizer.next.type == "LOCAL" {
-      tokenizer.selectNext()
-      return parseDeclaration(symbolTable: symbolTable, funcTable: funcTable)
-    } else if tokenizer.next.type == "PRINT" {
-      tokenizer.selectNext()
-      return parsePrint(symbolTable: symbolTable, funcTable: funcTable)
-    } else if tokenizer.next.type == "WHILE" {
-      tokenizer.selectNext()
-      let result = parseWhile(symbolTable: symbolTable, funcTable: funcTable)
-      if tokenizer.next.type == "EOL" {
+        return VarAssign(value: name, children: [expression])
+      } else if tokenizer.next.type == "LPAREN" {
         tokenizer.selectNext()
-        return result
-      } else {
-        fatalError("Unexpected token after END in WHILE statement")
-      }
-    } else if tokenizer.next.type == "IF" {
-      tokenizer.selectNext()
-      let result = parseIf(symbolTable: symbolTable, funcTable: funcTable)
-      if tokenizer.next.type == "EOL" {
-        tokenizer.selectNext()
-        return result
-      } else {
-        fatalError("Unexpected token after END in IF statement")
-      }
-    } else if tokenizer.next.type == "FUNCTION" {
-      tokenizer.selectNext()
-      if tokenizer.next.type != "IDENTIFIER" {
-        fatalError("Invalid function name in function declaration")
-      }
-      let functionName = tokenizer.next.value
-      
-      tokenizer.selectNext()
-      if tokenizer.next.type != "LPAREN" {
-        fatalError("Missing opening parenthesis for function declaration")
-      }
-      
-      tokenizer.selectNext()
-      // Parse function arguments
-      var arguments: [String] = []
-      while tokenizer.next.type != "RPAREN" {
-        if tokenizer.next.type == "IDENTIFIER" {
-          arguments.append(tokenizer.next.value)
-          tokenizer.selectNext()
+        var arguments: [Node] = []
+        while tokenizer.next.type != "RPAREN" {
+          let argument = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+          arguments.append(argument)
           if tokenizer.next.type == "COMMA" {
+            tokenizer.selectNext()
           } else if tokenizer.next.type != "RPAREN" {
             fatalError("Missing comma between function arguments")
           }
-        } else {
-          fatalError("Invalid argument name in function declaration")
         }
+        tokenizer.selectNext()
+        return FuncCall(value: name, children: arguments)
+      } else {
+        fatalError("Invalid statement")
       }
-      if tokenizer.next.type != "RPAREN" {
-        fatalError("Missing closing parenthesis for function declaration")
-      }
-
-      tokenizer.selectNext()
-      if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after function arguments")
-      }
-
-      // Parse function body
-      var statements: [Node] = []
-      while tokenizer.next.type != "END" {
-        let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
-        statements.append(statement)
-      }
-      if tokenizer.next.type != "END" {
-        fatalError("Missing END after function declaration")
-      }
-
-      tokenizer.selectNext()
-      funcTable.setFunction(functionName, arguments, statements)
-      return FuncDec(value: functionName, children: [StringVal(value: functionName, children: []), StringVal(value: arguments.joined(separator: ", "), children: []), NoOp(value: "", children: statements)])
-    } else if tokenizer.next.type == "RETURN" {
-      tokenizer.selectNext()
-      return parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-    } else if tokenizer.next.type == "EOL" {
-      tokenizer.selectNext()
-      return NoOp(value: "", children: [])
-    } else {
-      fatalError("Invalid statement")
     }
-    return NoOp(value: "", children: [])
   }
+
+  // private func parseIf(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  //   let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
+  //   if tokenizer.next.type == "THEN" {
+  //     tokenizer.selectNext()
+  //     if tokenizer.next.type == "EOL" {
+  //       tokenizer.selectNext()
+  //       var statements: [Node] = []
+  //       while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
+  //         if condition == 1 {
+  //           let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+  //           statements.append(statement)
+  //         } else {
+  //           tokenizer.selectNext()
+  //         }
+  //       }
+  //       if tokenizer.next.type == "ELSE" {
+  //         tokenizer.selectNext()
+  //         while tokenizer.next.type != "END" {
+  //           if condition == 0 {
+  //             let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+  //             statements.append(statement)
+  //           } else {
+  //             tokenizer.selectNext()
+  //           }
+  //         }
+  //       }
+  //       if tokenizer.next.type == "END" {
+  //         tokenizer.selectNext()
+  //         return NoOp(value: "", children: statements)
+  //       } else {
+  //         fatalError("Missing END after IF statement")
+  //       }
+  //     } else {
+  //       fatalError("Missing EOL after THEN")
+  //     }
+  //   } else {
+  //     fatalError("Missing THEN within if statement")
+  //   }
+  //   return NoOp(value: "", children: [])
+  // }
+
+  // private func parseWhile(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  //   let whileStartPosition = tokenizer.position-1
+  //   var whileEndPosition = tokenizer.position-1
+  //   var conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
+    
+  //   var statements: [Node] = []
+
+  //   while conditionValue == 1 {
+  //     if tokenizer.next.type == "DO" {
+  //       tokenizer.selectNext()
+  //       if tokenizer.next.type == "EOL" {
+  //         tokenizer.selectNext()
+  //         while tokenizer.next.type != "END" {
+  //           let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+  //           statements.append(statement)
+  //         }
+  //         if tokenizer.next.type == "END" {
+  //           whileEndPosition = tokenizer.position
+  //           tokenizer.position = whileStartPosition
+  //           tokenizer.selectNext()
+  //           conditionValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
+  //         } else {
+  //           fatalError("Missing END after WHILE loop")
+  //         }
+  //       } else {
+  //         fatalError("Missing EOL after DO")
+  //       }
+  //     } else {
+  //       fatalError("Missing DO within while statement")
+  //     }
+  //   }
+  //   tokenizer.position = whileEndPosition
+  //   tokenizer.selectNext()
+  //   return NoOp(value: "", children: statements)
+  // }
+
+  // private func parsePrint(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  //   if tokenizer.next.type == "LPAREN" {
+  //     tokenizer.selectNext()
+  //     let printValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  //     if tokenizer.next.type == "RPAREN" {
+  //       tokenizer.selectNext()
+  //       print(printValue)
+  //       return NoOp(value: "", children: [])
+  //     } else {
+  //       fatalError("Missing closing parenthesis for print statement")
+  //     }
+  //   } else {
+  //     fatalError("Missing opening parenthesis for print statement")
+  //   }
+  //   return NoOp(value: "", children: [])
+  // }
+
+  // private func parseDeclaration(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  //   if tokenizer.next.type == "IDENTIFIER" {
+  //     let variableName = tokenizer.next.value
+  //     tokenizer.selectNext()
+      
+  //     // Check if there's an assignment
+  //     if tokenizer.next.type == "ASSIGN" {
+  //       tokenizer.selectNext()
+  //       // Parse the expression to initialize the variable
+  //       let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+  //       let variableValue = expression.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  //       symbolTable.initVar(variableName, variableValue)
+  //       return NoOp(value: "", children: [])
+  //     } else {
+  //       symbolTable.initVar(variableName)
+  //       return NoOp(value: "", children: [])
+  //     }
+  //   } else {
+  //     fatalError("Invalid variable name in declaration")
+  //     return NoOp(value: "", children: [])
+  //   }
+  // }
+
+  // private func parseAssignment(symbolTable: SymbolTable, funcTable: FuncTable, variableName: String) -> Node {
+  //   if tokenizer.next.type == "ASSIGN" {
+  //     tokenizer.selectNext()
+  //     let variableValue = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable).evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  //     symbolTable.setValue(variableName, variableValue)
+  //     return NoOp(value: "", children: [])
+  //   } else {
+  //     fatalError("Missing assignment operator")
+  //   }
+  //   return NoOp(value: "", children: [])
+  // }
+
+  // private func parseStatement(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  //   if tokenizer.next.type == "IDENTIFIER" {
+  //     let variableName = tokenizer.next.value
+  //     tokenizer.selectNext()
+  //     return parseAssignment(symbolTable: symbolTable, funcTable: funcTable, variableName: variableName)
+  //   } else if tokenizer.next.type == "LOCAL" {
+  //     tokenizer.selectNext()
+  //     return parseDeclaration(symbolTable: symbolTable, funcTable: funcTable)
+  //   } else if tokenizer.next.type == "PRINT" {
+  //     tokenizer.selectNext()
+  //     return parsePrint(symbolTable: symbolTable, funcTable: funcTable)
+  //   } else if tokenizer.next.type == "WHILE" {
+  //     tokenizer.selectNext()
+  //     let result = parseWhile(symbolTable: symbolTable, funcTable: funcTable)
+  //     if tokenizer.next.type == "EOL" {
+  //       tokenizer.selectNext()
+  //       return result
+  //     } else {
+  //       fatalError("Unexpected token after END in WHILE statement")
+  //     }
+  //   } else if tokenizer.next.type == "IF" {
+  //     tokenizer.selectNext()
+  //     let result = parseIf(symbolTable: symbolTable, funcTable: funcTable)
+  //     if tokenizer.next.type == "EOL" {
+  //       tokenizer.selectNext()
+  //       return result
+  //     } else {
+  //       fatalError("Unexpected token after END in IF statement")
+  //     }
+  //   } else if tokenizer.next.type == "FUNCTION" {
+  //     tokenizer.selectNext()
+  //     if tokenizer.next.type != "IDENTIFIER" {
+  //       fatalError("Invalid function name in function declaration")
+  //     }
+  //     let functionName = tokenizer.next.value
+      
+  //     tokenizer.selectNext()
+  //     if tokenizer.next.type != "LPAREN" {
+  //       fatalError("Missing opening parenthesis for function declaration")
+  //     }
+      
+  //     tokenizer.selectNext()
+  //     // Parse function arguments
+  //     var arguments: [String] = []
+  //     while tokenizer.next.type != "RPAREN" {
+  //       if tokenizer.next.type == "IDENTIFIER" {
+  //         arguments.append(tokenizer.next.value)
+  //         tokenizer.selectNext()
+  //         if tokenizer.next.type == "COMMA" {
+  //         } else if tokenizer.next.type != "RPAREN" {
+  //           fatalError("Missing comma between function arguments")
+  //         }
+  //       } else {
+  //         fatalError("Invalid argument name in function declaration")
+  //       }
+  //     }
+  //     if tokenizer.next.type != "RPAREN" {
+  //       fatalError("Missing closing parenthesis for function declaration")
+  //     }
+
+  //     tokenizer.selectNext()
+  //     if tokenizer.next.type != "EOL" {
+  //       fatalError("Missing EOL after function arguments")
+  //     }
+
+  //     // Parse function body
+  //     var statements: [Node] = []
+  //     while tokenizer.next.type != "END" {
+  //       let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+  //       statements.append(statement)
+  //     }
+  //     if tokenizer.next.type != "END" {
+  //       fatalError("Missing END after function declaration")
+  //     }
+
+  //     tokenizer.selectNext()
+  //     funcTable.setFunction(functionName, arguments, statements)
+  //     return FuncDec(value: functionName, children: [StringVal(value: functionName, children: []), StringVal(value: arguments.joined(separator: ", "), children: []), NoOp(value: "", children: statements)])
+  //   } else if tokenizer.next.type == "RETURN" {
+  //     tokenizer.selectNext()
+  //     return parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+  //   } else if tokenizer.next.type == "EOL" {
+  //     tokenizer.selectNext()
+  //     return NoOp(value: "", children: [])
+  //   } else {
+  //     fatalError("Invalid statement")
+  //   }
+  //   return NoOp(value: "", children: [])
+  // }
 
   private func parseBlock(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
     var statements: [Node] = []

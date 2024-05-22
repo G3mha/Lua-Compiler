@@ -186,8 +186,7 @@ class VarDec: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let variableName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
-    symbolTable.initVar(variableName)
+    symbolTable.initVar(self.value)
     return 0
   }
 }
@@ -202,9 +201,8 @@ class VarAssign: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let variableName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
-    let variableValue = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-    symbolTable.setValue(variableName, variableValue)
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    symbolTable.setValue(self.value, variableValue)
     return 0
   }
 }
