@@ -221,6 +221,20 @@ class VarAccess: Node {
   }
 }
 
+class FuncArgs: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    self.children[0]
+  }
+}
+
 class FuncDec: Node {
   var value: String
   var children: [Node]
@@ -231,10 +245,12 @@ class FuncDec: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Int {
-    let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
-    let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! [String]
-    let funcBody = self.children[2].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! [Node]
-    funcTable.setFunction(funcName, funcArgs, funcBody)
+    let funcBody = self.children[0] as! Block
+    let funcArgs: [VarDec] = []
+    for i in 1..<self.children.count {
+      funcArgs.append(self.children[i] as! VarDec)
+    }
+    funcTable.setFunction(self.value, funcArgs, funcBody)
     return 0
   }
 }
@@ -250,7 +266,7 @@ class FuncCall: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let funcData = funcTable.getFunction(self.value)
-    let funcArgsFromTable = funcData.0 as! [String]
+    let funcArgsFromTable = funcData.0 as! [VarDec]
     let funcBodyFromTable = funcData.1 as! Block
 
     if self.children.count != funcArgsFromTable.count {
@@ -259,13 +275,33 @@ class FuncCall: Node {
 
     let localSymbolTable = SymbolTable()
 
+    for i in 0..<funcArgsFromTable.count {
+      localSymbolTable.initVar(funcArgsFromTable[i].value)
+    }
+
     for i in 0..<self.children.count {
-      localSymbolTable.initVar(funcArgsFromTable[i])
       let evaluatedValue = self.children[i].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-      localSymbolTable.setValue(funcArgsFromTable[i], evaluatedValue)
+      localSymbolTable.setValue(funcArgsFromTable[i].value, evaluatedValue)
     }
     
     return funcBodyFromTable.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
+  }
+}
+
+class Statements: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    for node in self.children {
+      let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    }
+    return 0
   }
 }
 
@@ -279,19 +315,34 @@ class WhileOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let condition = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-    let body = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-
-    if condition is Int {
-      while condition as! Int == 1 {
-        for node in body as! [Node] {
-          let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
-        }
-      }
-    } else {
-      fatalError("Invalid condition in while loop")
+    let condition = self.children[0]
+    let statements = self.children[1]
+    while condition.evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int == 1 {
+      let _ = statements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
     }
+    return 0
+  }
+}
 
+class IfOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let condition = self.children[0]
+    let ifStatements = self.children[1]
+    let elseStatements = self.children[2]
+
+    if condition.evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int == 1 {
+      let _ = ifStatements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    } else {
+      let _ = elseStatements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    }
     return 0
   }
 }
