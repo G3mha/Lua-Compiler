@@ -181,12 +181,12 @@ class Parser {
         fatalError("Missing EOL after THEN")
       }
       tokenizer.selectNext()
-      let ifStatements: [Node] = []
+      var ifStatements: [Node] = []
       while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
         let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
         ifStatements.append(statement)
       }
-      let elseStatements: [Node] = []
+      var elseStatements: [Node] = []
       if tokenizer.next.type == "ELSE" {
         tokenizer.selectNext()
         while tokenizer.next.type != "END" {
@@ -221,7 +221,7 @@ class Parser {
         fatalError("Missing opening parenthesis for function declaration")
       }
       tokenizer.selectNext()
-      var functionItems: [String] = []
+      var functionItems: [Node] = []
       while tokenizer.next.type != "RPAREN" {
         if tokenizer.next.type == "IDENTIFIER" {
           functionItems.append(VarDec(value: tokenizer.next.value, children: []))
@@ -240,7 +240,7 @@ class Parser {
         fatalError("Missing EOL after function arguments")
       }
       tokenizer.selectNext()
-      let statements: [Node] = []
+      var statements: [Node] = []
       while tokenizer.next.type != "END" {
         let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
         statements.append(statement)

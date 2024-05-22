@@ -244,7 +244,7 @@ class FuncDec: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Int {
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let funcBody = self.children[0] as! Block
     let funcArgs: [VarDec] = []
     for i in 1..<self.children.count {

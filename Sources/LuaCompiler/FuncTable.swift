@@ -1,8 +1,6 @@
 class FuncTable {
   private var table: [String: ([String], Block)] = [:]
 
-  func 
-
   func setFunction(_ functionName: String, _ functionArgs: [VarDec], _ functionBody: Block) {
     table[functionName] = (functionArgs, functionBody)
   }
