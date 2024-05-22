@@ -140,6 +140,64 @@ class Parser {
       } else {
         fatalError("Invalid statement")
       }
+    } else if tokenizer.next.type == "PRINT" {
+      tokenizer.selectNext()
+      if tokenizer.next.type != "LPAREN" {
+        fatalError("Missing opening parenthesis for print statement")
+      }
+      tokenizer.selectNext()
+      let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      if tokenizer.next.type != "RPAREN" {
+        fatalError("Missing closing parenthesis for print statement")
+      }
+      tokenizer.selectNext()
+      return PrintOp(value: "PRINT", children: [expression])
+    } else if tokenizer.next.type == "IF" {
+      tokenizer.selectNext()
+      let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      if tokenizer.next.type == "THEN" {
+        tokenizer.selectNext()
+        if tokenizer.next.type == "NEWLINE" {
+          tokenizer.selectNext()
+          var statements: [Node] = []
+          while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
+            let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+            statements.append(statement)
+          }
+          if tokenizer.next.type == "ELSE" {
+            tokenizer.selectNext()
+            while tokenizer.next.type != "END" {
+              let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+              statements.append(statement)
+            }
+          }
+          if tokenizer.next.type == "END" {
+            tokenizer.selectNext()
+            return IfOp(value: "IF", children: [condition, NoOp(value: "", children: statements)])
+          } else {
+            fatalError("Missing END after IF statement")
+          }
+        } else {
+          fatalError("Missing NEWLINE after THEN")
+        }
+      } else {
+        fatalError("Missing THEN within if statement")
+      }
+    } else if tokenizer.next.type == "WHILE" {
+      tokenizer.selectNext()
+      let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      if tokenizer.next.type == "DO" {
+        tokenizer.selectNext()
+        if tokenizer.next.type == "NEWLINE" {
+          tokenizer.selectNext()
+          var statements: [Node] = []
+          while tokenizer.next.type != "END" {
+            let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+            statements.append(statement)
+          }
+          if tokenizer.next.type == "END" {
+            tokenizer.selectNext()
+            return WhileOp(value: "WHILE", children: [condition, No
     }
   }
 

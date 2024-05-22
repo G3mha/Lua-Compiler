@@ -259,9 +259,10 @@ class FuncCall: Node {
 
     let localSymbolTable = SymbolTable()
 
-    for i in 0..<funcArgs.count {
-      let evaluatedValue = funcArgs[i].evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
-      localSymbolTable.initVar(funcArgsFromTable[i], evaluatedValue)
+    for i in 0..<self.children.count {
+      localSymbolTable.initVar(funcArgsFromTable[i])
+      let evaluatedValue = self.children[i].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      localSymbolTable.setValue(funcArgsFromTable[i], evaluatedValue)
     }
     
     return funcBodyFromTable.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
@@ -315,5 +316,21 @@ class ReadOp: Node {
     } else {
       return readValue
     }
+  }
+}
+
+class PrintOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let printValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    print(printValue)
+    return 0
   }
 }
