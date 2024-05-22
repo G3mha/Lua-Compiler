@@ -15,9 +15,26 @@ class Block: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     for node in self.children {
-      let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      let nodeValue = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      if node is ReturnOp {
+        return nodeValue
+      }
     }
     return 0
+  }
+}
+
+class ReturnOp: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    return self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
   }
 }
 
