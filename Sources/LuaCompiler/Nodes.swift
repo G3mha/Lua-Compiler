@@ -1,3 +1,5 @@
+import Foundation
+
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
@@ -51,51 +53,24 @@ class BinOp: Node {
     let firstValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
     let secondValue = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
 
-    if firstValue is Integer && secondValue is Integer {
-      switch self.value {
-        case "PLUS":
-          return firstValue + secondValue
-        case "MINUS":
-          return firstValue - secondValue
-        case "MUL":
-          return firstValue * secondValue
-        case "DIV":
-          return firstValue / secondValue
-        case "GT":
-          return (firstValue > secondValue) ? 1 : 0
-        case "LT":
-          return (firstValue < secondValue) ? 1 : 0
-        case "EQ":
-          return (firstValue == secondValue) ? 1 : 0
-        case "AND":
-          return (firstValue == 1 && secondValue == 1) ? 1 : 0
-        case "OR":
-          return (firstValue == 1 || secondValue == 1) ? 1 : 0
-        case "CONCAT":
-          return firstValue + secondValue
-        default:
-          fatalError("Unsupported binary operation on integers")
-      }
-    } else if firstValue is String && secondValue is String {
-      switch self.value {
-        case "CONCAT":
-          return firstValue + secondValue
-        case "EQ":
-          return (firstValue == secondValue) ? 1 : 0
-        case "GT":
-          return (firstValue > secondValue) ? 1 : 0
-        case "LT":
-          return (firstValue < secondValue) ? 1 : 0
-        default:
-          fatalError("Unsupported binary operation on strings")
-      }
+    if let firstInt = firstValue as? Int, let secondInt = secondValue as? Int {
+      if self.value == "PLUS" { return firstInt + secondInt }
+      if self.value == "MINUS" { return firstInt - secondInt }
+      if self.value == "MUL" { return firstInt * secondInt }
+      if self.value == "DIV" { return firstInt / secondInt }
+      if self.value == "GT" { return firstInt > secondInt ? 1 : 0 }
+      if self.value == "LT" { return firstInt < secondInt ? 1 : 0 }
+      if self.value == "EQ" { return firstInt == secondInt ? 1 : 0 }
+      if self.value == "AND" { return firstInt == 1 && secondInt == 1 ? 1 : 0 }
+      if self.value == "OR" { return firstInt == 1 || secondInt == 1 ? 1 : 0 }
+      if self.value == "CONCAT" { return String(firstInt) + String(secondInt) }
+    } else if let firstString = firstValue as? String, let secondString = secondValue as? String {
+      if self.value == "GT" { return firstString > secondString ? 1 : 0 }
+      if self.value == "LT" { return firstString < secondString ? 1 : 0 }
+      if self.value == "EQ" { return firstString == secondString ? 1 : 0 }
+      if self.value == "CONCAT" { return firstString + secondString }
     } else {
-      switch self.value {
-        case "CONCAT":
-          return String(firstValue) + String(secondValue)
-        default:
-          fatalError("Unsupported binary operation on strings")
-      }
+      fatalError("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
     }
     return 0
   }
@@ -111,22 +86,16 @@ class UnOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let result = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-
-    if result is String {
-      fatalError("Cannot perform unary arithmetic operations on Strings")
-    }
-
-    if result == "NOT" {
+    let result = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
+    if self.value == "NOT" {
       return (result == 0) ? 1 : 0
-    } else if result == "MINUS" {
+    } else if self.value == "MINUS" {
       return -result
-    } else if result == "PLUS" {
+    } else if self.value == "PLUS" {
       return result
     } else {
       fatalError("Unsupported unary operation on integers")
     }
-    return 0
   }
 }
 
@@ -245,9 +214,9 @@ class FuncDec: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let funcBody = self.children[0] as! Block
-    let funcArgs: [VarDec] = []
-    for i in 1..<self.children.count {
+    let funcBody = self.children.last as! Block
+    var funcArgs: [VarDec] = []
+    for i in 0..<self.children.count-1 {
       funcArgs.append(self.children[i] as! VarDec)
     }
     funcTable.setFunction(self.value, funcArgs, funcBody)
@@ -266,11 +235,11 @@ class FuncCall: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let funcData = funcTable.getFunction(self.value)
-    let funcArgsFromTable = funcData.0 as! [VarDec]
-    let funcBodyFromTable = funcData.1 as! Block
+    let funcArgsFromTable = funcData.0
+    let funcBodyFromTable = funcData.1
 
     if self.children.count != funcArgsFromTable.count {
-      fatalError("Invalid number of arguments for function \(funcName)")
+      fatalError("Invalid number of arguments for function \(self.value)")
     }
 
     let localSymbolTable = SymbolTable()
@@ -358,14 +327,10 @@ class ReadOp: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let readValue = readLine()
-    if readValue == "true" {
-      return 1
-    } else if readValue == "false" {
-      return 0
-    } else if let intValue = Int(readValue!) {
-      return intValue
+    if let intValue = Int(readValue!) {
+      return intValue as Any
     } else {
-      return readValue
+      fatalError("Invalid integer value read from input")
     }
   }
 }

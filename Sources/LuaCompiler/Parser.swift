@@ -163,7 +163,7 @@ class Parser {
         fatalError("Missing EOL after DO")
       }
       tokenizer.selectNext()
-      let statements: [Node] = []
+      var statements: [Node] = []
       while tokenizer.next.type != "END" {
         let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
         statements.append(statement)
@@ -236,7 +236,7 @@ class Parser {
         }
       }
       tokenizer.selectNext()
-      if tokenizer.next.type != "NEWLINE" {
+      if tokenizer.next.type != "EOL" {
         fatalError("Missing EOL after function arguments")
       }
       tokenizer.selectNext()
@@ -245,7 +245,7 @@ class Parser {
         let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
         statements.append(statement)
       }
-      functionItems.append(contentsOf: Block(value: "", children: statements))
+      functionItems.append(Block(value: "", children: statements))
       if tokenizer.next.type != "END" {
         fatalError("Missing END after function declaration")
       }

@@ -79,7 +79,7 @@ class Tokenizer {
       } else if char.isLetter {
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
-          if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local", "true", "false", "function", "return"].contains(tokenWord) {
+          if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local", "function", "return"].contains(tokenWord) {
             break
           } else if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
             tokenWord += String(nextChar)
@@ -91,8 +91,6 @@ class Tokenizer {
         position -= 1
         if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local", "function", "return"].contains(tokenWord) {
           self.next = Token(type: tokenWord.uppercased(), value: "0")
-        } else if tokenWord == "true" || tokenWord == "false" {
-          self.next = Token(type: "NUMBER", value: tokenWord == "true" ? "1" : "0")
         } else {
           self.next = Token(type: "IDENTIFIER", value: tokenWord)
         }
