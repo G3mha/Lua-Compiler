@@ -25,7 +25,7 @@ class SymbolTable {
     } else if let variableValue = table[variableName] {
       return variableValue
     } else {
-      fatalError("Value not assigned to variable: \(variableName)")
+      fatalError("Variable \(variableName) is initialized, but has no value assigned")
     }
   }
 }

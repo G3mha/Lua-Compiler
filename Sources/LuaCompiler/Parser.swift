@@ -15,19 +15,24 @@ class Parser {
       tokenizer.selectNext()
       return StringVal(value: factorValue, children: [])
     } else if tokenizer.next.type == "IDENTIFIER" {
-      let variableName = tokenizer.next.value
-      let variableValue = symbolTable.getValue(variableName)
+      let name = tokenizer.next.value
       tokenizer.selectNext()
-      if let value = variableValue {
-        if let intValue = value as? Int {
-          return IntVal(value: String(intValue), children: [])
-        } else if let strValue = value as? String {
-          return StringVal(value: strValue, children: [])
-        } else {
-          fatalError("Variable \(variableName) is initialized, but has no value assigned")
+      if tokenizer.next.type == "LPAREN" {
+        tokenizer.selectNext()
+        var arguments: [Node] = []
+        while tokenizer.next.type != "RPAREN" {
+          let argument = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+          arguments.append(argument)
+          if tokenizer.next.type == "COMMA" {
+            tokenizer.selectNext()
+          } else if tokenizer.next.type != "RPAREN" {
+            fatalError("Missing comma between function arguments")
+          }
         }
+        tokenizer.selectNext()
+        return FuncCall(value: name, children: arguments)
       } else {
-        fatalError("Variable \(variableName) not found in symbol table")
+        return VarAccess(value: name, children: [])
       }
     } else if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "NOT" {
       let operatorType = tokenizer.next.type
@@ -36,12 +41,11 @@ class Parser {
     } else if tokenizer.next.type == "LPAREN" {
       tokenizer.selectNext()
       let result = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-      if tokenizer.next.type == "RPAREN" {
-        tokenizer.selectNext()
-        return result
-      } else {
+      if tokenizer.next.type != "RPAREN" {
         fatalError("Missing closing parenthesis")
       }
+      tokenizer.selectNext()
+      return result
     } else if tokenizer.next.type == "READ" {
       tokenizer.selectNext()
       if tokenizer.next.type != "LPAREN" {

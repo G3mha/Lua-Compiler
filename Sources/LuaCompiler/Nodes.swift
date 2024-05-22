@@ -192,6 +192,20 @@ class VarAssign: Node {
   }
 }
 
+class VarAccess: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    return symbolTable.getValue(self.value)
+  }
+}
+
 class FuncDec: Node {
   var value: String
   var children: [Node]
@@ -220,33 +234,22 @@ class FuncCall: Node {
   }
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let funcName = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! String
-    let funcArgs = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! [String]
-
-    let funcData = funcTable.getFunction(funcName)
+    let funcData = funcTable.getFunction(self.value)
     let funcArgsFromTable = funcData.0 as! [String]
-    let funcBodyFromTable = funcData.1 as! [Node]
+    let funcBodyFromTable = funcData.1 as! Block
 
-    if funcArgs.count != funcArgsFromTable.count {
+    if self.children.count != funcArgsFromTable.count {
       fatalError("Invalid number of arguments for function \(funcName)")
     }
 
     let localSymbolTable = SymbolTable()
 
     for i in 0..<funcArgs.count {
-      let evaluatedValue = funcArgs[i].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      let evaluatedValue = funcArgs[i].evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
       localSymbolTable.initVar(funcArgsFromTable[i], evaluatedValue)
     }
-
-    var result: Any = 0
-    for node in funcBodyFromTable {
-      if let unwrappedNode = node {
-        result = unwrappedNode.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
-      } else {
-        fatalError("Invalid function body")
-      }
-    }
-    return result
+    
+    return funcBodyFromTable.evaluate(symbolTable: localSymbolTable, funcTable: funcTable)
   }
 }
 

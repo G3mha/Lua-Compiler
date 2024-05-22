@@ -1,13 +1,13 @@
 class FuncTable {
-  private var table: [String: ([String], [Node])] = [:]
+  private var table: [String: ([String], Block)] = [:]
 
   func 
 
-  func setFunction(_ functionName: String, _ functionArgs: [String], _ functionBody: [Node]) {
+  func setFunction(_ functionName: String, _ functionArgs: [String], _ functionBody: Block) {
     table[functionName] = (functionArgs, functionBody)
   }
 
-  func getFunction(_ functionName: String) -> (functionArgs: [String], functionBody: [Node]) {
+  func getFunction(_ functionName: String) -> (functionArgs: [String], functionBody: Block) {
     if table.keys.contains(functionName) {
       return table[functionName]
     } else {
