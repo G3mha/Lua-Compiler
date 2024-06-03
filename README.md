@@ -8,17 +8,40 @@
 
 ```ebnf
 BLOCK = { STATEMENT };
-STATEMENT = ( IDENTIFIER, "=", BOOL_EXP | "local", IDENTIFIER, ["=",BOOL_EXP] | "print", "(", BOOL_EXP, ")" | "while", BOOL_EXP, "do", "\n", { ( STATEMENT )}, "end" | "if", BOOL_EXP, "then", "\n", { ( STATEMENT ) }, [ "else", "\n", { ( STATEMENT )}], "end" ), "\n" ;
+
+STATEMENT = ( 
+    IDENTIFIER, ( "=", BOOL_EXP | "(" , ( | BOOL_EXP, { ( "," ) , BOOL_EXP } ), ")" )
+    | "local", IDENTIFIER, ["=", BOOL_EXP] 
+    | "print", "(", BOOL_EXP, ")" 
+    | "while", BOOL_EXP, "do", "\n", { ( STATEMENT )}, "end" 
+    | "if", BOOL_EXP, "then", "\n", { ( STATEMENT ) }, [ "else", "\n", { ( STATEMENT )}], "end"
+    | "function", IDENTIFIER, "(", ( | IDENTIFIER, { ( "," ), IDENTIFIER } ), ")", "\n", { ( STATEMENT ) }, "end"
+    | "return", BOOL_EXP
+    ), "\n" ;
+
 BOOL_EXP = BOOL_TERM, { ("or"), BOOL_TERM } ;
+
 BOOL_TERM = REL_EXP, { ("and"), REL_EXP } ;
-REL_EXP = EXPRESSION, { ("==" | ">" | "<"), EXPRESSION } ;
+
 EXPRESSION = TERM, { ("+" | "-" |".."), TERM } ;
+
 TERM = FACTOR, { ("*" | "/"), FACTOR } ;
-FACTOR = NUMBER | STRING |IDENTIFIER | (("+" | "-" | "not"), FACTOR ) | "(", BOOL_EXP, ")" | "read", "(", ")" ;
+
+FACTOR = NUMBER 
+    | STRING 
+    | IDENTIFIER, ( | "(" , ( | BOOL_EXP, { ( "," ) , BOOL_EXP } ), ")" ) 
+    | ("+" | "-" | "not"), FACTOR 
+    | "(", BOOL_EXP, ")" 
+    | "read", "(", ")" ;
+
 IDENTIFIER = LETTER, { LETTER | DIGIT | "_" } ;
+
 NUMBER = DIGIT, { DIGIT } ;
+
 LETTER = ( "a" | "..." | "z" | "A" | "..." | "Z" ) ;
+
 DIGIT = ( "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0" ) ;
+
 STRING = '"', ({LETTER | DIGIT | "_"}), '"';
 ```
 
