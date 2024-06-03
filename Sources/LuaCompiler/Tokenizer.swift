@@ -11,8 +11,12 @@ class Tokenizer {
 
   func selectNext() -> Void {
     if position < source.count {
-      let char = source[source.index(source.startIndex, offsetBy: position)]
+      var char = source[source.index(source.startIndex, offsetBy: position)]
       var tokenWord = ""
+      while char == " " && position < source.count {
+        position += 1
+        char = source[source.index(source.startIndex, offsetBy: position)]
+      }
       if char == "," {
         self.next = Token(type: "COMMA", value: "0")
       } else if char == "+" {
@@ -79,9 +83,7 @@ class Tokenizer {
       } else if char.isLetter {
         while position < source.count {
           let nextChar = source[source.index(source.startIndex, offsetBy: position)]
-          if ["print", "if", "else", "while", "do", "then", "end", "and", "or", "not", "read", "local", "function", "return"].contains(tokenWord) {
-            break
-          } else if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
+          if nextChar.isLetter || nextChar.isNumber || nextChar == "_" {
             tokenWord += String(nextChar)
           } else {
             break

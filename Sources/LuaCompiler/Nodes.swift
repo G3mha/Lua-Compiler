@@ -69,10 +69,12 @@ class BinOp: Node {
       if self.value == "LT" { return firstString < secondString ? 1 : 0 }
       if self.value == "EQ" { return firstString == secondString ? 1 : 0 }
       if self.value == "CONCAT" { return firstString + secondString }
-    } else {
-      fatalError("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
+    } else if let firstInt = firstValue as? Int, let secondString = secondValue as? String {
+      if self.value == "CONCAT" { return String(firstInt) + secondString }
+    } else if let firstString = firstValue as? String, let secondInt = secondValue as? Int {
+      if self.value == "CONCAT" { return firstString + String(secondInt) }
     }
-    return 0
+    fatalError("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
   }
 }
 
