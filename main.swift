@@ -692,8 +692,6 @@ func main() {
     return
   }
 
-  writeStderrAndExit("Please provide a .lua file path.")
-
   let fileContent = readFile(CommandLine.arguments[1])
   let symbolTable = SymbolTable()
   let myParser = Parser()
