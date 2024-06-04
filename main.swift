@@ -25,12 +25,14 @@ class SymbolTable {
   func initVar(_ variableName: String) {
     if table.keys.contains(variableName) {
       writeStderrAndExit("Variable already initialized: \(variableName)")
-    } else {
-      table[variableName] = nil as Any?
     }
+    table[variableName] = nil as Any?
   }
 
   func setValue(_ variableName: String, _ variableValue: Any) {
+    if !table.keys.contains(variableName) {
+      writeStderrAndExit("Variable not initialized: \(variableName)")
+    }
     table[variableName] = variableValue
   }
 
