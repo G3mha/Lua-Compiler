@@ -51,7 +51,7 @@ class SymbolTable {
 protocol Node {
   var value: String { get set }
   var children: [Node] { get set }
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any
+  func evaluate(symbolTable: SymbolTable) -> Any
 }
 
 class Block: Node {
@@ -63,9 +63,9 @@ class Block: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     for node in self.children {
-      let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      let _ = node.evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -80,9 +80,9 @@ class BinOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let firstValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
-    let secondValue = self.children[1].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  func evaluate(symbolTable: SymbolTable) -> Any {
+    let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
+    let secondValue = self.children[1].evaluate(symbolTable: symbolTable)
 
     if let firstInt = firstValue as? Int, let secondInt = secondValue as? Int {
       if self.value == "PLUS" { return firstInt + secondInt }
@@ -119,8 +119,8 @@ class UnOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let result = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int
+  func evaluate(symbolTable: SymbolTable) -> Any {
+    let result = self.children[0].evaluate(symbolTable: symbolTable) as! Int
     if self.value == "NOT" {
       return (result == 0) ? 1 : 0
     } else if self.value == "MINUS" {
@@ -142,7 +142,7 @@ class IntVal: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     if let intValue = Int(self.value) {
       return intValue
     }
@@ -160,7 +160,7 @@ class StringVal: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     return String(self.value)
   }
 }
@@ -174,7 +174,7 @@ class NoOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     return 0
   }
 }
@@ -188,7 +188,7 @@ class VarDec: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     symbolTable.initVar(self.value)
     return 0
   }
@@ -203,8 +203,8 @@ class VarAssign: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  func evaluate(symbolTable: SymbolTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
@@ -219,8 +219,8 @@ class VarDecAndAssign: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  func evaluate(symbolTable: SymbolTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     symbolTable.initVar(self.value)
     symbolTable.setValue(self.value, variableValue)
     return 0
@@ -236,7 +236,7 @@ class VarAccess: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     return symbolTable.getValue(self.value)
   }
 }
@@ -250,9 +250,9 @@ class Statements: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     for node in self.children {
-      let _ = node.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      let _ = node.evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -267,11 +267,11 @@ class WhileOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     let condition = self.children[0]
     let statements = self.children[1]
-    while condition.evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int == 1 {
-      let _ = statements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    while condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
+      let _ = statements.evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -286,15 +286,15 @@ class IfOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     let condition = self.children[0]
     let ifStatements = self.children[1]
     let elseStatements = self.children[2]
 
-    if condition.evaluate(symbolTable: symbolTable, funcTable: funcTable) as! Int == 1 {
-      let _ = ifStatements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    if condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
+      let _ = ifStatements.evaluate(symbolTable: symbolTable)
     } else {
-      let _ = elseStatements.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+      let _ = elseStatements.evaluate(symbolTable: symbolTable)
     }
     return 0
   }
@@ -309,7 +309,7 @@ class ReadOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+  func evaluate(symbolTable: SymbolTable) -> Any {
     let readValue = readLine()
     if let intValue = Int(readValue!) {
       return intValue as Any
@@ -328,8 +328,8 @@ class PrintOp: Node {
     self.children = children
   }
 
-  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
-    let printValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  func evaluate(symbolTable: SymbolTable) -> Any {
+    let printValue = self.children[0].evaluate(symbolTable: symbolTable)
     if let printInt = printValue as? Int {
       print(printInt)
     } else if let printString = printValue as? String {
@@ -464,7 +464,7 @@ class Parser {
     self.tokenizer = Tokenizer(source: "")
   }
 
-  private func parseFactor(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  private func parseFactor(symbolTable: SymbolTable) -> Node {
     if tokenizer.next.type == "NUMBER" {
       let factorValue = tokenizer.next.value
       tokenizer.selectNext()
@@ -476,30 +476,14 @@ class Parser {
     } else if tokenizer.next.type == "IDENTIFIER" {
       let name = tokenizer.next.value
       tokenizer.selectNext()
-      if tokenizer.next.type == "LPAREN" {
-        tokenizer.selectNext()
-        var arguments: [Node] = []
-        while tokenizer.next.type != "RPAREN" {
-          let argument = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-          arguments.append(argument)
-          if tokenizer.next.type == "COMMA" {
-            tokenizer.selectNext()
-          } else if tokenizer.next.type != "RPAREN" {
-            writeStderrAndExit("Missing comma between function arguments")
-          }
-        }
-        tokenizer.selectNext()
-        return FuncCall(value: name, children: arguments)
-      } else {
-        return VarAccess(value: name, children: [])
-      }
+      return VarAccess(value: name, children: [])
     } else if tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "NOT" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      return UnOp(value: operatorType, children: [parseFactor(symbolTable: symbolTable, funcTable: funcTable)])
+      return UnOp(value: operatorType, children: [parseFactor(symbolTable: symbolTable)])
     } else if tokenizer.next.type == "LPAREN" {
       tokenizer.selectNext()
-      let result = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      let result = parseBoolExpression(symbolTable: symbolTable)
       if tokenizer.next.type != "RPAREN" {
         writeStderrAndExit("Missing closing parenthesis")
       }
@@ -522,57 +506,57 @@ class Parser {
     return NoOp(value: "", children: [])
   }
 
-  private func parseTerm(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    var result = parseFactor(symbolTable: symbolTable, funcTable: funcTable)
+  private func parseTerm(symbolTable: SymbolTable) -> Node {
+    var result = parseFactor(symbolTable: symbolTable)
     while tokenizer.next.type == "MUL" || tokenizer.next.type == "DIV" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: operatorType, children: [result, parseFactor(symbolTable: symbolTable, funcTable: funcTable)])
+      result = BinOp(value: operatorType, children: [result, parseFactor(symbolTable: symbolTable)])
     }
     return result
   }
 
-  private func parseExpression(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    var result = parseTerm(symbolTable: symbolTable, funcTable: funcTable)
+  private func parseExpression(symbolTable: SymbolTable) -> Node {
+    var result = parseTerm(symbolTable: symbolTable)
     while tokenizer.next.type == "PLUS" || tokenizer.next.type == "MINUS" || tokenizer.next.type == "CONCAT" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: operatorType, children: [result, parseTerm(symbolTable: symbolTable, funcTable: funcTable)])
+      result = BinOp(value: operatorType, children: [result, parseTerm(symbolTable: symbolTable)])
     }
     return result
   }
 
-  private func parseRelationalExpression(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    var result = parseExpression(symbolTable: symbolTable, funcTable: funcTable)
+  private func parseRelationalExpression(symbolTable: SymbolTable) -> Node {
+    var result = parseExpression(symbolTable: symbolTable)
     while tokenizer.next.type == "GT" || tokenizer.next.type == "LT" || tokenizer.next.type == "EQ" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: operatorType, children: [result, parseExpression(symbolTable: symbolTable, funcTable: funcTable)])
+      result = BinOp(value: operatorType, children: [result, parseExpression(symbolTable: symbolTable)])
     }
     return result
   }
 
-  private func parseBooleanTerm(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    var result = parseRelationalExpression(symbolTable: symbolTable, funcTable: funcTable)
+  private func parseBooleanTerm(symbolTable: SymbolTable) -> Node {
+    var result = parseRelationalExpression(symbolTable: symbolTable)
     while tokenizer.next.type == "AND" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: operatorType, children: [result, parseRelationalExpression(symbolTable: symbolTable, funcTable: funcTable)])
+      result = BinOp(value: operatorType, children: [result, parseRelationalExpression(symbolTable: symbolTable)])
     }
     return result
   }
 
-  private func parseBoolExpression(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
-    var result = parseBooleanTerm(symbolTable: symbolTable, funcTable: funcTable)
+  private func parseBoolExpression(symbolTable: SymbolTable) -> Node {
+    var result = parseBooleanTerm(symbolTable: symbolTable)
     while tokenizer.next.type == "OR" {
       let operatorType = tokenizer.next.type
       tokenizer.selectNext()
-      result = BinOp(value: operatorType, children: [result, parseBooleanTerm(symbolTable: symbolTable, funcTable: funcTable)])
+      result = BinOp(value: operatorType, children: [result, parseBooleanTerm(symbolTable: symbolTable)])
     }
     return result
   }
 
-  private func parseStatement(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  private func parseStatement(symbolTable: SymbolTable) -> Node {
     if tokenizer.next.type == "EOL" {
       tokenizer.selectNext()
       return NoOp(value: "", children: [])
@@ -581,22 +565,8 @@ class Parser {
       tokenizer.selectNext()
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
-        let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+        let expression = parseBoolExpression(symbolTable: symbolTable)
         return VarAssign(value: name, children: [expression])
-      } else if tokenizer.next.type == "LPAREN" {
-        tokenizer.selectNext()
-        var arguments: [Node] = []
-        while tokenizer.next.type != "RPAREN" {
-          let argument = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-          arguments.append(argument)
-          if tokenizer.next.type == "COMMA" {
-            tokenizer.selectNext()
-          } else if tokenizer.next.type != "RPAREN" {
-            writeStderrAndExit("Missing comma between function arguments")
-          }
-        }
-        tokenizer.selectNext()
-        return FuncCall(value: name, children: arguments)
       } else {
         writeStderrAndExit("Invalid statement")
       }
@@ -606,7 +576,7 @@ class Parser {
         writeStderrAndExit("Missing opening parenthesis for print statement")
       }
       tokenizer.selectNext()
-      let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      let expression = parseBoolExpression(symbolTable: symbolTable)
       if tokenizer.next.type != "RPAREN" {
         writeStderrAndExit("Missing closing parenthesis for print statement")
       }
@@ -614,7 +584,7 @@ class Parser {
       return PrintOp(value: "PRINT", children: [expression])
     } else if tokenizer.next.type == "WHILE" {
       tokenizer.selectNext()
-      let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      let condition = parseBoolExpression(symbolTable: symbolTable)
       if tokenizer.next.type != "DO" {
         writeStderrAndExit("Missing DO after WHILE condition")
       }
@@ -625,7 +595,7 @@ class Parser {
       tokenizer.selectNext()
       var statements: [Node] = []
       while tokenizer.next.type != "END" {
-        let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+        let statement = parseStatement(symbolTable: symbolTable)
         statements.append(statement)
       }
       tokenizer.selectNext()
@@ -635,7 +605,7 @@ class Parser {
       return WhileOp(value: "WHILE", children: [condition, Statements(value: "", children: statements)])
     } else if tokenizer.next.type == "IF" {
       tokenizer.selectNext()
-      let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+      let condition = parseBoolExpression(symbolTable: symbolTable)
       if tokenizer.next.type != "THEN" {
         writeStderrAndExit("Missing THEN after IF condition")
       }
@@ -646,14 +616,14 @@ class Parser {
       tokenizer.selectNext()
       var ifStatements: [Node] = []
       while tokenizer.next.type != "END" && tokenizer.next.type != "ELSE" {
-        let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+        let statement = parseStatement(symbolTable: symbolTable)
         ifStatements.append(statement)
       }
       var elseStatements: [Node] = []
       if tokenizer.next.type == "ELSE" {
         tokenizer.selectNext()
         while tokenizer.next.type != "END" {
-          let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+          let statement = parseStatement(symbolTable: symbolTable)
           elseStatements.append(statement)
         }
       }
@@ -671,33 +641,30 @@ class Parser {
       tokenizer.selectNext()
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
-        let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
+        let expression = parseBoolExpression(symbolTable: symbolTable)
         return VarDecAndAssign(value: variableName, children: [expression])
       } else {
         return VarDec(value: variableName, children: [])
       }
-      tokenizer.selectNext()
-      let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-      return ReturnOp(value: "RETURN", children: [expression])
     }
     writeStderrAndExit("Invalid statement")
     return NoOp(value: "", children: [])
   }
 
-  private func parseBlock(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  private func parseBlock(symbolTable: SymbolTable) -> Node {
     var statements: [Node] = []
     while tokenizer.next.type != "EOF" {
-      let statement = parseStatement(symbolTable: symbolTable, funcTable: funcTable)
+      let statement = parseStatement(symbolTable: symbolTable)
       statements.append(statement)
     }
     return Block(value: "", children: statements)
   }
 
-  public func run(code: String, symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
+  public func run(code: String, symbolTable: SymbolTable) -> Node {
     let filteredCode = PrePro.filter(code: code)
     self.tokenizer = Tokenizer(source: filteredCode)
     tokenizer.selectNext() // Position the tokenizer to the first token
-    return parseBlock(symbolTable: symbolTable, funcTable: funcTable)
+    return parseBlock(symbolTable: symbolTable)
   }
 }
 
@@ -727,10 +694,9 @@ func main() {
 
   let fileContent = readFile(CommandLine.arguments[1])
   let symbolTable = SymbolTable()
-  let funcTable = FuncTable()
   let myParser = Parser()
-  let ast = myParser.run(code: fileContent, symbolTable: symbolTable, funcTable: funcTable)
-  let _ = ast.evaluate(symbolTable: symbolTable, funcTable: funcTable)
+  let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
+  let _ = ast.evaluate(symbolTable: symbolTable)
 }
 
 main()
