@@ -32,12 +32,13 @@ class SymbolTable {
 
   func getValue(_ variableName: String) -> Any {
     if !table.keys.contains(variableName) {
-      fatalError("Variable not initialized: \(variableName)")
+      writeStderrAndExit("Variable not initialized: \(variableName)")
+      return 0
     } else if let variableValue = table[variableName] {
       return variableValue as Any
-    } else {
-      fatalError("Variable \(variableName) is initialized, but has no value assigned")
     }
+    writeStderrAndExit("Variable \(variableName) is initialized, but has no value assigned")
+    return 0
   }
 }
 
@@ -53,11 +54,12 @@ class FuncTable {
       if let functionData = table[functionName] {
         return functionData
       } else {
-        fatalError("Function \(functionName) is initialized, but has no value assigned")
+        writeStderrAndExit("Function \(functionName) is initialized, but has no value assigned")
+        return ([], Block(value: "", children: []))
       }
-    } else {
-      fatalError("Function not defined: \(functionName)")
     }
+    writeStderrAndExit("Function not defined: \(functionName)")
+    return ([], Block(value: "", children: []))
   }
 }
 
@@ -135,7 +137,8 @@ class BinOp: Node {
     } else if let firstString = firstValue as? String, let secondInt = secondValue as? Int {
       if self.value == "CONCAT" { return firstString + String(secondInt) }
     }
-    fatalError("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
+    writeStderrAndExit("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
+    return 0
   }
 }
 
@@ -156,9 +159,9 @@ class UnOp: Node {
       return -result
     } else if self.value == "PLUS" {
       return result
-    } else {
-      fatalError("Unsupported unary operation on integers")
     }
+    writeStderrAndExit("Unsupported unary operation on integers")
+    return 0
   }
 }
 
@@ -174,9 +177,9 @@ class IntVal: Node {
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     if let intValue = Int(self.value) {
       return intValue
-    } else {
-      fatalError("Invalid integer value")
     }
+    writeStderrAndExit("Invalid integer value")
+    return 0
   }
 }
 
@@ -288,7 +291,7 @@ class FuncCall: Node {
     let funcBodyFromTable = funcData.1
 
     if self.children.count != funcArgsFromTable.count {
-      fatalError("Invalid number of arguments for function \(self.value)")
+      writeStderrAndExit("Invalid number of arguments for function \(self.value)")
     }
 
     let localSymbolTable = SymbolTable()
@@ -378,9 +381,9 @@ class ReadOp: Node {
     let readValue = readLine()
     if let intValue = Int(readValue!) {
       return intValue as Any
-    } else {
-      fatalError("Invalid integer value read from input")
     }
+    writeStderrAndExit("Invalid integer value read from input")
+    return 0
   }
 }
 
@@ -400,7 +403,7 @@ class PrintOp: Node {
     } else if let printString = printValue as? String {
       print(printString)
     } else {
-      fatalError("Unsupported type for print operation")
+      writeStderrAndExit("Unsupported type for print operation")
     }
     return 0
   }
@@ -465,7 +468,7 @@ class Tokenizer {
           self.next = Token(type: "CONCAT", value: "0")
           position += 1
         } else {
-          fatalError("Invalid character \(tokenWord)")
+          writeStderrAndExit("Invalid character \(tokenWord)")
         }
       } else if char == "\n" {
         self.next = Token(type: "EOL", value: "0")
@@ -476,14 +479,14 @@ class Tokenizer {
           if nextChar == "\"" {
             break
           } else if nextChar == "\n"{
-            fatalError("Forgot to close string with \"")
+            writeStderrAndExit("Forgot to close string with \"")
           } else {
             tokenWord += String(nextChar)
           }
           position += 1
         }
         if source[source.index(source.startIndex, offsetBy: position)] != "\"" {
-          fatalError("Forgot to close string with \"")
+          writeStderrAndExit("Forgot to close string with \"")
         }
         self.next = Token(type: "STRING", value: tokenWord)
       } else if char.isNumber {
@@ -515,7 +518,7 @@ class Tokenizer {
           self.next = Token(type: "IDENTIFIER", value: tokenWord)
         }
       } else {
-        fatalError("Invalid character \(tokenWord)")
+        writeStderrAndExit("Invalid character \(tokenWord)")
       }
       position += 1
     } else {
@@ -552,7 +555,7 @@ class Parser {
           if tokenizer.next.type == "COMMA" {
             tokenizer.selectNext()
           } else if tokenizer.next.type != "RPAREN" {
-            fatalError("Missing comma between function arguments")
+            writeStderrAndExit("Missing comma between function arguments")
           }
         }
         tokenizer.selectNext()
@@ -568,24 +571,25 @@ class Parser {
       tokenizer.selectNext()
       let result = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
       if tokenizer.next.type != "RPAREN" {
-        fatalError("Missing closing parenthesis")
+        writeStderrAndExit("Missing closing parenthesis")
       }
       tokenizer.selectNext()
       return result
     } else if tokenizer.next.type == "READ" {
       tokenizer.selectNext()
       if tokenizer.next.type != "LPAREN" {
-        fatalError("Missing opening parenthesis for read statement")
+        writeStderrAndExit("Missing opening parenthesis for read statement")
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "RPAREN" {
-        fatalError("Missing closing parenthesis for read statement")
+        writeStderrAndExit("Missing closing parenthesis for read statement")
       }
       tokenizer.selectNext()
       return ReadOp(value: "READ", children: [])
     } else {
-      fatalError("Invalid factor: (\(tokenizer.next.type), \(tokenizer.next.value))")
+      writeStderrAndExit("Invalid factor: (\(tokenizer.next.type), \(tokenizer.next.value))")
     }
+    return NoOp(value: "", children: [])
   }
 
   private func parseTerm(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
@@ -658,23 +662,23 @@ class Parser {
           if tokenizer.next.type == "COMMA" {
             tokenizer.selectNext()
           } else if tokenizer.next.type != "RPAREN" {
-            fatalError("Missing comma between function arguments")
+            writeStderrAndExit("Missing comma between function arguments")
           }
         }
         tokenizer.selectNext()
         return FuncCall(value: name, children: arguments)
       } else {
-        fatalError("Invalid statement")
+        writeStderrAndExit("Invalid statement")
       }
     } else if tokenizer.next.type == "PRINT" {
       tokenizer.selectNext()
       if tokenizer.next.type != "LPAREN" {
-        fatalError("Missing opening parenthesis for print statement")
+        writeStderrAndExit("Missing opening parenthesis for print statement")
       }
       tokenizer.selectNext()
       let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
       if tokenizer.next.type != "RPAREN" {
-        fatalError("Missing closing parenthesis for print statement")
+        writeStderrAndExit("Missing closing parenthesis for print statement")
       }
       tokenizer.selectNext()
       return PrintOp(value: "PRINT", children: [expression])
@@ -682,11 +686,11 @@ class Parser {
       tokenizer.selectNext()
       let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
       if tokenizer.next.type != "DO" {
-        fatalError("Missing DO after WHILE condition")
+        writeStderrAndExit("Missing DO after WHILE condition")
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after DO")
+        writeStderrAndExit("Missing EOL after DO")
       }
       tokenizer.selectNext()
       var statements: [Node] = []
@@ -696,18 +700,18 @@ class Parser {
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after END")
+        writeStderrAndExit("Missing EOL after END")
       }
       return WhileOp(value: "WHILE", children: [condition, Statements(value: "", children: statements)])
     } else if tokenizer.next.type == "IF" {
       tokenizer.selectNext()
       let condition = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
       if tokenizer.next.type != "THEN" {
-        fatalError("Missing THEN after IF condition")
+        writeStderrAndExit("Missing THEN after IF condition")
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after THEN")
+        writeStderrAndExit("Missing EOL after THEN")
       }
       tokenizer.selectNext()
       var ifStatements: [Node] = []
@@ -725,13 +729,13 @@ class Parser {
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after END")
+        writeStderrAndExit("Missing EOL after END")
       }
       return IfOp(value: "IF", children: [condition, Statements(value: "", children: ifStatements), Statements(value: "", children: elseStatements)])
     } else if tokenizer.next.type == "LOCAL" {
       tokenizer.selectNext()
       if tokenizer.next.type != "IDENTIFIER" {
-        fatalError("Invalid variable name in declaration")
+        writeStderrAndExit("Invalid variable name in declaration")
       }
       let variableName = tokenizer.next.value
       tokenizer.selectNext()
@@ -745,12 +749,12 @@ class Parser {
     } else if tokenizer.next.type == "FUNCTION" {
       tokenizer.selectNext()
       if tokenizer.next.type != "IDENTIFIER" {
-        fatalError("Invalid function name in function declaration")
+        writeStderrAndExit("Invalid function name in function declaration")
       }
       let functionName = tokenizer.next.value
       tokenizer.selectNext()
       if tokenizer.next.type != "LPAREN" {
-        fatalError("Missing opening parenthesis for function declaration")
+        writeStderrAndExit("Missing opening parenthesis for function declaration")
       }
       tokenizer.selectNext()
       var functionItems: [Node] = []
@@ -761,15 +765,15 @@ class Parser {
           if tokenizer.next.type == "COMMA" {
             tokenizer.selectNext()
           } else if tokenizer.next.type != "RPAREN" {
-            fatalError("Missing comma between function arguments")
+            writeStderrAndExit("Missing comma between function arguments")
           }
         } else {
-          fatalError("Invalid argument name in function declaration")
+          writeStderrAndExit("Invalid argument name in function declaration")
         }
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after function arguments")
+        writeStderrAndExit("Missing EOL after function arguments")
       }
       tokenizer.selectNext()
       var statements: [Node] = []
@@ -779,20 +783,20 @@ class Parser {
       }
       functionItems.append(Block(value: "", children: statements))
       if tokenizer.next.type != "END" {
-        fatalError("Missing END after function declaration")
+        writeStderrAndExit("Missing END after function declaration")
       }
       tokenizer.selectNext()
       if tokenizer.next.type != "EOL" {
-        fatalError("Missing EOL after END")
+        writeStderrAndExit("Missing EOL after END")
       }
       return FuncDec(value: functionName, children: functionItems)
     } else if tokenizer.next.type == "RETURN" {
       tokenizer.selectNext()
       let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
       return ReturnOp(value: "RETURN", children: [expression])
-    } else {
-      fatalError("Invalid statement")
     }
+    writeStderrAndExit("Invalid statement")
+    return NoOp(value: "", children: [])
   }
 
   private func parseBlock(symbolTable: SymbolTable, funcTable: FuncTable) -> Node {
@@ -813,19 +817,27 @@ class Parser {
 }
 
 
+func writeStderrAndExit(_ message: String) {
+  // function that writes to stderr a received string and exits with error
+  fputs("ERROR: \(message)\n", stderr) // write to stderr
+  exit(1) // exit with error
+}
+
 func readFile(_ path: String) -> String {
   do {
     let contents = try String(contentsOfFile: path, encoding: .utf8)
     return contents
   } catch {
-    fatalError("Failed to read file")
+    writeStderrAndExit("Failed to read file")
+    return ""
   }
 }
 
 func main() {
   // Ensure there is at least one command line argument for the file path.
   guard CommandLine.arguments.count > 1 else {
-    fatalError("Please provide a .lua file path.")
+    writeStderrAndExit("Please provide a .lua file path.")
+    return
   }
 
   let fileContent = readFile(CommandLine.arguments[1])
