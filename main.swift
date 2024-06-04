@@ -1,6 +1,11 @@
 import Foundation
 
 
+enum None {
+  case None
+}
+
+
 class PrePro {
   static public func filter(code: String) -> String {
     let splittedCode = code.replacingOccurrences(of: "\t", with: "").split(separator: "\n")
@@ -32,6 +37,9 @@ class SymbolTable {
   func setValue(_ variableName: String, _ variableValue: Any) {
     if !table.keys.contains(variableName) {
       writeStderrAndExit("Variable not initialized: \(variableName)")
+    }
+    if variableValue is None {
+      writeStderrAndExit("Invalid value for variable \(variableName)")
     }
     table[variableName] = variableValue
   }
@@ -91,7 +99,8 @@ class Block: Node {
         return nodeValue
       }
     }
-    return 0
+    // Indicates that this block does not have a return statement
+    return None.None
   }
 }
 
@@ -243,6 +252,23 @@ class VarAssign: Node {
 
   func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    symbolTable.setValue(self.value, variableValue)
+    return 0
+  }
+}
+
+class VarDecAndAssign: Node {
+  var value: String
+  var children: [Node]
+
+  init(value: String, children: [Node]) {
+    self.value = value
+    self.children = children
+  }
+
+  func evaluate(symbolTable: SymbolTable, funcTable: FuncTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable, funcTable: funcTable)
+    symbolTable.initVar(self.value)
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
@@ -748,7 +774,7 @@ class Parser {
       if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
         let expression = parseBoolExpression(symbolTable: symbolTable, funcTable: funcTable)
-        return VarAssign(value: variableName, children: [expression])
+        return VarDecAndAssign(value: variableName, children: [expression])
       } else {
         return VarDec(value: variableName, children: [])
       }
