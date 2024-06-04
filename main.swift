@@ -404,13 +404,14 @@ class WhileOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    Assembler.addInstruction("while_\(UUID().uuidString):")
+    let idWhile = UUID().uuidString
+    Assembler.addInstruction("while_\(idWhile):")
     let condition = self.children[0]
     Assembler.addInstruction("CMP EAX, False")
-    Assembler.addInstruction("JE while_end_\(UUID().uuidString)")
+    Assembler.addInstruction("JE while_end_\(idWhile)")
     let statements = self.children[1]
-    Assembler.addInstruction("JMP while_\(UUID().uuidString)")
-    Assembler.addInstruction("while_end_\(UUID().uuidString):")
+    Assembler.addInstruction("JMP while_\(idWhile)")
+    Assembler.addInstruction("while_end_\(idWhile):")
     while condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
       let _ = statements.evaluate(symbolTable: symbolTable)
     }
@@ -428,15 +429,16 @@ class IfOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    Assembler.addInstruction("if_\(UUID().uuidString):")
+    let idIf = UUID().uuidString
+    Assembler.addInstruction("if_\(idIf):")
     let condition = self.children[0]
     Assembler.addInstruction("CMP EAX, False")
-    Assembler.addInstruction("JE if_else_\(UUID().uuidString)")
+    Assembler.addInstruction("JE if_else_\(idIf)")
     let ifStatements = self.children[1]
-    Assembler.addInstruction("JMP if_end_\(UUID().uuidString)")
-    Assembler.addInstruction("if_else_\(UUID().uuidString):")
+    Assembler.addInstruction("JMP if_end_\(idIf)")
+    Assembler.addInstruction("if_else_\(idIf):")
     let elseStatements = self.children[2]
-    Assembler.addInstruction("if_end_\(UUID().uuidString):")
+    Assembler.addInstruction("if_end_\(idIf):")
 
     if condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
       let _ = ifStatements.evaluate(symbolTable: symbolTable)
