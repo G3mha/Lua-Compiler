@@ -835,16 +835,22 @@ func readFile(_ path: String) -> String {
 func main() {
   // Ensure there is at least one command line argument for the file path.
   guard CommandLine.arguments.count > 1 else {
-    writeStderrAndExit("Please provide a .lua file path.")
+    writeStderrAndExit("Please provide a file path.")
     return
   }
 
-  let fileContent = readFile(CommandLine.arguments[1])
+  let filename = CommandLine.arguments[1]
+  if !filename.hasSuffix(".lua") {
+    writeStderrAndExit("Please provide a .lua file.")
+  }
+  let filenameParts = filename.split(separator: ".")
+
+  let fileContent = readFile(filename)
   let symbolTable = SymbolTable()
   let myParser = Parser()
   let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
   let _ = ast.evaluate(symbolTable: symbolTable)
-  Assembler.generate(filename: "output.asm")
+  Assembler.generate(filename: String(filenameParts[0]) + ".asm")
 }
 
 main()
