@@ -169,6 +169,9 @@ class Parser {
         statements.append(statement)
       }
       tokenizer.selectNext()
+      if tokenizer.next.type != "EOL" {
+        fatalError("Missing EOL after END")
+      }
       return WhileOp(value: "WHILE", children: [condition, Statements(value: "", children: statements)])
     } else if tokenizer.next.type == "IF" {
       tokenizer.selectNext()
@@ -195,6 +198,9 @@ class Parser {
         }
       }
       tokenizer.selectNext()
+      if tokenizer.next.type != "EOL" {
+        fatalError("Missing EOL after END")
+      }
       return IfOp(value: "IF", children: [condition, Statements(value: "", children: ifStatements), Statements(value: "", children: elseStatements)])
     } else if tokenizer.next.type == "LOCAL" {
       tokenizer.selectNext()
@@ -250,6 +256,9 @@ class Parser {
         fatalError("Missing END after function declaration")
       }
       tokenizer.selectNext()
+      if tokenizer.next.type != "EOL" {
+        fatalError("Missing EOL after END")
+      }
       return FuncDec(value: functionName, children: functionItems)
     } else if tokenizer.next.type == "RETURN" {
       tokenizer.selectNext()
