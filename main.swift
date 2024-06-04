@@ -23,7 +23,11 @@ class SymbolTable {
   private var table: [String: Any?] = [:]
 
   func initVar(_ variableName: String) {
-    table[variableName] = nil
+    if table.keys.contains(variableName) {
+      writeStderrAndExit("Variable already initialized: \(variableName)")
+    } else {
+      table[variableName] = nil as Any?
+    }
   }
 
   func setValue(_ variableName: String, _ variableValue: Any) {
