@@ -1,6 +1,96 @@
 import Foundation
 
 
+class Assembler {
+  private static let header = """
+    ; constantes
+    SYS_EXIT equ 1
+    SYS_READ equ 3
+    SYS_WRITE equ 4
+    STDIN equ 0
+    STDOUT equ 1
+    True equ 1
+    False equ 0
+
+    segment .data
+
+    formatin: db "%d", 0
+    formatout: db "%d", 10, 0 ; newline, nul terminator
+    scanint: times 4 db 0 ; 32-bits integer = 4 bytes
+
+    segment .bss  ; variaveis
+    res RESB 1
+
+    section .text
+    global main ; linux
+    ;global _main ; windows
+    extern scanf ; linux
+    extern printf ; linux
+    ;extern _scanf ; windows
+    ;extern _printf; windows
+    extern fflush ; linux
+    ;extern _fflush ; windows
+    extern stdout ; linux
+    ;extern _stdout ; windows
+
+    ; subrotinas if/while
+    binop_je:
+    JE binop_true
+    JMP binop_false
+
+    binop_jg:
+    JG binop_true
+    JMP binop_false
+
+    binop_jl:
+    JL binop_true
+    JMP binop_false
+
+    binop_false:
+    MOV EAX, False  
+    JMP binop_exit
+    binop_true:
+    MOV EAX, True
+    binop_exit:
+    RET
+
+    main:
+
+    PUSH EBP ; guarda o base pointer
+    MOV EBP, ESP ; estabelece um novo base pointer
+  """
+
+  private static let footer = """
+    ; interrupcao de saida (default)
+
+    PUSH DWORD [stdout]
+    CALL fflush
+    ADD ESP, 4
+
+    MOV ESP, EBP
+    POP EBP
+
+    MOV EAX, 1
+    XOR EBX, EBX
+    INT 0x80
+  """
+
+  private static var code: String = ""
+
+  static func addInstruction(_ instruction: String) {
+    code += instruction + "\n"
+  }
+
+  static func generate(filename: String) {
+    let content = header + code + footer
+    do {
+      try content.write(toFile: filename, atomically: true, encoding: .utf8)
+    } catch {
+      writeStderrAndExit("Failed to write file")
+    }
+  }
+}
+
 class PrePro {
   static public func filter(code: String) -> String {
     let splittedCode = code.replacingOccurrences(of: "\t", with: "").split(separator: "\n")
@@ -82,7 +172,34 @@ class BinOp: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
+    Assembler.addInstruction("PUSH EAX")
     let secondValue = self.children[1].evaluate(symbolTable: symbolTable)
+    Assembler.addInstruction("POP EBX")
+
+    if ["EQ", "GT", "LT"].contains(self.value) {
+      Assembler.addInstruction("CMP EAX, EBX")
+      if self.value == "EQ" {
+        Assembler.addInstruction("CALL binop_je")
+      } else if self.value == "GT" {
+        Assembler.addInstruction("CALL binop_jg")
+      } else if self.value == "LT" {
+        Assembler.addInstruction("CALL binop_jl")
+      }
+    } else if ["PLUS", "MINUS", "MUL", "DIV", "AND", "OR"].contains(self.value) {
+      if self.value == "PLUS" {
+        Assembler.addInstruction("ADD EAX, EBX")
+      } else if self.value == "MINUS" {
+        Assembler.addInstruction("SUB EAX, EBX")
+      } else if self.value == "MUL" {
+        Assembler.addInstruction("IMUL EAX, EBX")
+      } else if self.value == "DIV" {
+        Assembler.addInstruction("IDIV EBX")
+      } else if self.value == "AND" {
+        Assembler.addInstruction("AND EAX, EBX")
+      } else if self.value == "OR" {
+        Assembler.addInstruction("OR EAX, EBX")
+      }
+    }
 
     if let firstInt = firstValue as? Int, let secondInt = secondValue as? Int {
       if self.value == "PLUS" { return firstInt + secondInt }
@@ -122,8 +239,10 @@ class UnOp: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let result = self.children[0].evaluate(symbolTable: symbolTable) as! Int
     if self.value == "NOT" {
+      Assembler.addInstruction("NOT EAX")
       return (result == 0) ? 1 : 0
     } else if self.value == "MINUS" {
+      Assembler.addInstruction("NEG EAX")
       return -result
     } else if self.value == "PLUS" {
       return result
@@ -144,6 +263,7 @@ class IntVal: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     if let intValue = Int(self.value) {
+      Assembler.addInstruction("MOV EAX, \(intValue)")
       return intValue
     }
     writeStderrAndExit("Invalid integer value")
@@ -190,6 +310,7 @@ class VarDec: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     symbolTable.initVar(self.value)
+    Assembler.addInstruction("PUSH DWORD 0")
     return 0
   }
 }
@@ -205,6 +326,8 @@ class VarAssign: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
+    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
@@ -222,6 +345,8 @@ class VarDecAndAssign: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     symbolTable.initVar(self.value)
+    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
@@ -237,6 +362,8 @@ class VarAccess: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
+    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    Assembler.addInstruction("MOV EAX, [EBP-\(offset)]")
     return symbolTable.getValue(self.value)
   }
 }
@@ -268,8 +395,13 @@ class WhileOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
+    Assembler.addInstruction("while_\(UUID().uuidString):")
     let condition = self.children[0]
+    Assembler.addInstruction("CMP EAX, False")
+    Assembler.addInstruction("JE while_end_\(UUID().uuidString)")
     let statements = self.children[1]
+    Assembler.addInstruction("JMP while_\(UUID().uuidString)")
+    Assembler.addInstruction("while_end_\(UUID().uuidString):")
     while condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
       let _ = statements.evaluate(symbolTable: symbolTable)
     }
@@ -287,9 +419,15 @@ class IfOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
+    Assembler.addInstruction("if_\(UUID().uuidString):")
     let condition = self.children[0]
+    Assembler.addInstruction("CMP EAX, False")
+    Assembler.addInstruction("JE if_else_\(UUID().uuidString)")
     let ifStatements = self.children[1]
+    Assembler.addInstruction("JMP if_end_\(UUID().uuidString)")
+    Assembler.addInstruction("if_else_\(UUID().uuidString):")
     let elseStatements = self.children[2]
+    Assembler.addInstruction("if_end_\(UUID().uuidString):")
 
     if condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
       let _ = ifStatements.evaluate(symbolTable: symbolTable)
@@ -312,6 +450,11 @@ class ReadOp: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let readValue = readLine()
     if let intValue = Int(readValue!) {
+      Assembler.addInstruction("PUSH scanint")
+      Assembler.addInstruction("PUSH formatin")
+      Assembler.addInstruction("call scanf")
+      Assembler.addInstruction("ADD ESP, 8")
+      Assembler.addInstruction("MOV EAX, DWORD [scanint]")
       return intValue as Any
     }
     writeStderrAndExit("Invalid integer value read from input")
@@ -330,6 +473,10 @@ class PrintOp: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     let printValue = self.children[0].evaluate(symbolTable: symbolTable)
+    Assembler.addInstruction("PUSH EAX")
+    Assembler.addInstruction("PUSH formatout")
+    Assembler.addInstruction("CALL printf")
+    Assembler.addInstruction("ADD ESP, 8")
     if let printInt = printValue as? Int {
       print(printInt)
     } else if let printString = printValue as? String {
@@ -697,6 +844,7 @@ func main() {
   let myParser = Parser()
   let ast = myParser.run(code: fileContent, symbolTable: symbolTable)
   let _ = ast.evaluate(symbolTable: symbolTable)
+  Assembler.generate(filename: "output.asm")
 }
 
 main()
