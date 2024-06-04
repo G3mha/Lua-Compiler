@@ -58,6 +58,7 @@ class Assembler {
 
     PUSH EBP ; guarda o base pointer
     MOV EBP, ESP ; estabelece um novo base pointer
+    
   """
 
   private static let footer = """
@@ -82,7 +83,7 @@ class Assembler {
   }
 
   static func generate(filename: String) {
-    let content = header + code + footer
+    let content = header + "\n" + code + "\n" + footer
     do {
       try content.write(toFile: filename, atomically: true, encoding: .utf8)
     } catch {
