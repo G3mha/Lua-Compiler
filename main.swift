@@ -180,9 +180,9 @@ class BinOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
-    Assembler.addInstruction("PUSH EAX")
     let secondValue = self.children[1].evaluate(symbolTable: symbolTable)
+    Assembler.addInstruction("PUSH EAX")
+    let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("POP EBX")
 
     if ["EQ", "GT", "LT"].contains(self.value) {
@@ -406,15 +406,14 @@ class WhileOp: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let idWhile = UUID().uuidString
     Assembler.addInstruction("while_\(idWhile):")
-    let condition = self.children[0]
+    // Evaluate the condition
+    _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
     Assembler.addInstruction("CMP EAX, False")
     Assembler.addInstruction("JE while_end_\(idWhile)")
-    let statements = self.children[1]
+    // Evaluate the statements
+    _ = self.children[1].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("JMP while_\(idWhile)")
     Assembler.addInstruction("while_end_\(idWhile):")
-    while condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
-      let _ = statements.evaluate(symbolTable: symbolTable)
-    }
     return 0
   }
 }
@@ -431,20 +430,17 @@ class IfOp: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let idIf = UUID().uuidString
     Assembler.addInstruction("if_\(idIf):")
-    let condition = self.children[0]
+    // Evaluate the condition
+    _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
     Assembler.addInstruction("CMP EAX, False")
-    Assembler.addInstruction("JE if_else_\(idIf)")
-    let ifStatements = self.children[1]
+    Assembler.addInstruction("JE if_else_\(idIf)")    
+    // Evaluate the if statements
+    _ = self.children[1].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("JMP if_end_\(idIf)")
     Assembler.addInstruction("if_else_\(idIf):")
-    let elseStatements = self.children[2]
+    // Evaluate the else statements
+    _ = self.children[2].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("if_end_\(idIf):")
-
-    if condition.evaluate(symbolTable: symbolTable) as! Int == 1 {
-      let _ = ifStatements.evaluate(symbolTable: symbolTable)
-    } else {
-      let _ = elseStatements.evaluate(symbolTable: symbolTable)
-    }
     return 0
   }
 }
