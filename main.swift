@@ -136,6 +136,14 @@ class SymbolTable {
     writeStderrAndExit("Variable \(variableName) is initialized, but has no value assigned")
     return 0
   }
+
+  func getOffset(for key: String) -> Int {
+    guard let index = Array(table.keys).firstIndex(of: key) else {
+      writeStderrAndExit("Variable not declared!")
+      return 0
+    }
+    return index * 4
+  }
 }
 
 protocol Node {
@@ -326,7 +334,7 @@ class VarAssign: Node {
 
   func evaluate(symbolTable: SymbolTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
-    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    let offset = symbolTable.getOffset(for: self.value)
     Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
     symbolTable.setValue(self.value, variableValue)
     return 0
@@ -345,7 +353,7 @@ class VarDecAndAssign: Node {
   func evaluate(symbolTable: SymbolTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     symbolTable.initVar(self.value)
-    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    let offset = symbolTable.getOffset(for: self.value)
     Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
     symbolTable.setValue(self.value, variableValue)
     return 0
@@ -362,7 +370,7 @@ class VarAccess: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let offset = symbolTable.table.keys.firstIndex(of: self.value)! * 4
+    let offset = symbolTable.getOffset(for: self.value)
     Assembler.addInstruction("MOV EAX, [EBP-\(offset)]")
     return symbolTable.getValue(self.value)
   }
