@@ -393,7 +393,7 @@ class WhileOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let idWhile = UUID().uuidString
+    let idWhile = UUID().uuidString.hashValue
     Assembler.addInstruction("while_\(idWhile):")
     // Evaluate the condition
     _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
@@ -417,7 +417,7 @@ class IfOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let idIf = UUID().uuidString
+    let idIf = UUID().uuidString.hashValue
     Assembler.addInstruction("if_\(idIf):")
     // Evaluate the condition
     _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
