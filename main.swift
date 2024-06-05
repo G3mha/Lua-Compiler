@@ -182,9 +182,9 @@ class BinOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let secondValue = self.children[1].evaluate(symbolTable: symbolTable)
+    let rightValue = self.children[1].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("PUSH EAX")
-    let firstValue = self.children[0].evaluate(symbolTable: symbolTable)
+    let leftValue = self.children[0].evaluate(symbolTable: symbolTable)
     Assembler.addInstruction("POP EBX")
 
     if ["EQ", "GT", "LT"].contains(self.value) {
@@ -204,6 +204,7 @@ class BinOp: Node {
       } else if self.value == "MUL" {
         Assembler.addInstruction("IMUL EBX")
       } else if self.value == "DIV" {
+        Assembler.addInstruction("CDQ")
         Assembler.addInstruction("IDIV EBX")
       } else if self.value == "AND" {
         Assembler.addInstruction("AND EAX, EBX")
@@ -212,7 +213,7 @@ class BinOp: Node {
       }
     }
 
-    if let firstInt = firstValue as? Int, let secondInt = secondValue as? Int {
+    if let firstInt = leftValue as? Int, let secondInt = rightValue as? Int {
       if self.value == "PLUS" { return firstInt + secondInt }
       if self.value == "MINUS" { return firstInt - secondInt }
       if self.value == "MUL" { return firstInt * secondInt }
@@ -223,17 +224,17 @@ class BinOp: Node {
       if self.value == "AND" { return firstInt == 1 && secondInt == 1 ? 1 : 0 }
       if self.value == "OR" { return firstInt == 1 || secondInt == 1 ? 1 : 0 }
       if self.value == "CONCAT" { return String(firstInt) + String(secondInt) }
-    } else if let firstString = firstValue as? String, let secondString = secondValue as? String {
+    } else if let firstString = leftValue as? String, let secondString = rightValue as? String {
       if self.value == "GT" { return firstString > secondString ? 1 : 0 }
       if self.value == "LT" { return firstString < secondString ? 1 : 0 }
       if self.value == "EQ" { return firstString == secondString ? 1 : 0 }
       if self.value == "CONCAT" { return firstString + secondString }
-    } else if let firstInt = firstValue as? Int, let secondString = secondValue as? String {
+    } else if let firstInt = leftValue as? Int, let secondString = rightValue as? String {
       if self.value == "CONCAT" { return String(firstInt) + secondString }
-    } else if let firstString = firstValue as? String, let secondInt = secondValue as? Int {
+    } else if let firstString = leftValue as? String, let secondInt = rightValue as? Int {
       if self.value == "CONCAT" { return firstString + String(secondInt) }
     }
-    writeStderrAndExit("Unsupported types for comparison: \(type(of: firstValue)) and \(type(of: secondValue))")
+    writeStderrAndExit("Unsupported types for comparison: \(type(of: leftValue)) and \(type(of: rightValue))")
     return 0
   }
 }
