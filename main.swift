@@ -393,7 +393,7 @@ class WhileOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let idWhile = UUID().uuidString.hashValue
+    let idWhile = generateUniqueIdentifier(length: 10)
     Assembler.addInstruction("while_\(idWhile):")
     // Evaluate the condition
     _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
@@ -417,7 +417,7 @@ class IfOp: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let idIf = UUID().uuidString.hashValue
+    let idIf = generateUniqueIdentifier(length: 10)
     Assembler.addInstruction("if_\(idIf):")
     // Evaluate the condition
     _ = self.children[0].evaluate(symbolTable: symbolTable) as! Int
@@ -826,6 +826,18 @@ func readFile(_ path: String) -> String {
     writeStderrAndExit("Failed to read file")
     return ""
   }
+}
+
+func generateUniqueIdentifier(length: Int) -> String {
+  let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  let charactersLength = UInt32(characters.count)
+  var identifier = ""
+  for _ in 0..<length {
+    let randomIndex = Int(arc4random_uniform(charactersLength))
+    let randomCharacter = characters.randomElement()!
+    identifier.append(randomCharacter)
+  }
+  return identifier
 }
 
 func main() {
