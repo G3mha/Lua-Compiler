@@ -66,7 +66,7 @@ PUSH EAX
 PUSH formatout
 CALL printf
 ADD ESP, 8
-if_6uQNBhsRMw:
+if_AKvfpVyNYM:
 MOV EAX, 3
 PUSH EAX
 MOV EAX, [EBP-4]
@@ -95,12 +95,12 @@ AND EAX, EBX
 POP EBX
 OR EAX, EBX
 CMP EAX, False
-JE if_else_6uQNBhsRMw
+JE if_else_AKvfpVyNYM
 MOV [EBP-4], EAX
 MOV EAX, 2
-JMP if_end_6uQNBhsRMw
-if_else_6uQNBhsRMw:
-if_end_6uQNBhsRMw:
+JMP if_end_AKvfpVyNYM
+if_else_AKvfpVyNYM:
+if_end_AKvfpVyNYM:
 PUSH DWORD 0
 MOV [EBP-8], EAX
 MOV EAX, 2

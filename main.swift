@@ -830,13 +830,14 @@ func readFile(_ path: String) -> String {
 
 func generateUniqueIdentifier(length: Int) -> String {
   let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-  let charactersLength = UInt32(characters.count)
   var identifier = ""
+
   for _ in 0..<length {
-    _ = Int(arc4random_uniform(charactersLength))
-    let randomCharacter = characters.randomElement()!
-    identifier.append(randomCharacter)
+    if let randomCharacter = characters.randomElement() {
+      identifier.append(randomCharacter)
+    }
   }
+
   return identifier
 }
 
