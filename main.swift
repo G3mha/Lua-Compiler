@@ -323,9 +323,9 @@ class VarDec: Node {
     Assembler.addInstruction("PUSH DWORD 0")
     symbolTable.initVar(self.value)
     if self.children.count == 1 {
+      let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
       let offset = symbolTable.getOffset(for: self.value)
       Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
-      let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
       symbolTable.setValue(self.value, variableValue)
     }
     return 0
@@ -342,9 +342,9 @@ class VarAssign: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
+    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     let offset = symbolTable.getOffset(for: self.value)
     Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
