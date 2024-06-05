@@ -833,7 +833,7 @@ func generateUniqueIdentifier(length: Int) -> String {
   let charactersLength = UInt32(characters.count)
   var identifier = ""
   for _ in 0..<length {
-    let randomIndex = Int(arc4random_uniform(charactersLength))
+    _ = Int(arc4random_uniform(charactersLength))
     let randomCharacter = characters.randomElement()!
     identifier.append(randomCharacter)
   }
