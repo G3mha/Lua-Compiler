@@ -112,12 +112,14 @@ class PrePro {
 
 class SymbolTable {
   private var table: [String: Any?] = [:]
+  private var variables: [String] = []
 
   func initVar(_ variableName: String) {
     if table.keys.contains(variableName) {
       writeStderrAndExit("Variable already initialized: \(variableName)")
     }
     table[variableName] = nil as Any?
+    variables.append(variableName)
   }
 
   func setValue(_ variableName: String, _ variableValue: Any) {
@@ -139,7 +141,7 @@ class SymbolTable {
   }
 
   func getOffset(for key: String) -> Int {
-    guard let index = Array(table.keys).firstIndex(of: key) else {
+    guard let index = variables.firstIndex(of: key) else {
       writeStderrAndExit("Variable not declared!")
       return 0
     }
@@ -321,6 +323,8 @@ class VarDec: Node {
     Assembler.addInstruction("PUSH DWORD 0")
     symbolTable.initVar(self.value)
     if self.children.count == 1 {
+      let offset = symbolTable.getOffset(for: self.value)
+      Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
       let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
       symbolTable.setValue(self.value, variableValue)
     }
