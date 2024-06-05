@@ -204,7 +204,7 @@ class BinOp: Node {
       } else if self.value == "MUL" {
         Assembler.addInstruction("IMUL EAX, EBX")
       } else if self.value == "DIV" {
-        Assembler.addInstruction("IDIV EAX, EBX")
+        Assembler.addInstruction("IDIV EBX")
       } else if self.value == "AND" {
         Assembler.addInstruction("AND EAX, EBX")
       } else if self.value == "OR" {
