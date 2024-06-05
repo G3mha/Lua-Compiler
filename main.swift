@@ -143,7 +143,7 @@ class SymbolTable {
       writeStderrAndExit("Variable not declared!")
       return 0
     }
-    return index * 4
+    return (index+1) * 4
   }
 }
 
@@ -202,7 +202,7 @@ class BinOp: Node {
       } else if self.value == "MUL" {
         Assembler.addInstruction("IMUL EAX, EBX")
       } else if self.value == "DIV" {
-        Assembler.addInstruction("IDIV EBX")
+        Assembler.addInstruction("IDIV EAX, EBX")
       } else if self.value == "AND" {
         Assembler.addInstruction("AND EAX, EBX")
       } else if self.value == "OR" {
@@ -318,8 +318,12 @@ class VarDec: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    symbolTable.initVar(self.value)
     Assembler.addInstruction("PUSH DWORD 0")
+    symbolTable.initVar(self.value)
+    if self.children.count == 1 {
+      let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
+      symbolTable.setValue(self.value, variableValue)
+    }
     return 0
   }
 }
@@ -334,28 +338,9 @@ class VarAssign: Node {
   }
 
   func evaluate(symbolTable: SymbolTable) -> Any {
-    let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
     let offset = symbolTable.getOffset(for: self.value)
     Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
-    symbolTable.setValue(self.value, variableValue)
-    return 0
-  }
-}
-
-class VarDecAndAssign: Node {
-  var value: String
-  var children: [Node]
-
-  init(value: String, children: [Node]) {
-    self.value = value
-    self.children = children
-  }
-
-  func evaluate(symbolTable: SymbolTable) -> Any {
     let variableValue = self.children[0].evaluate(symbolTable: symbolTable)
-    symbolTable.initVar(self.value)
-    let offset = symbolTable.getOffset(for: self.value)
-    Assembler.addInstruction("MOV [EBP-\(offset)], EAX")
     symbolTable.setValue(self.value, variableValue)
     return 0
   }
@@ -793,12 +778,12 @@ class Parser {
       }
       let variableName = tokenizer.next.value
       tokenizer.selectNext()
-      if tokenizer.next.type == "ASSIGN" {
+      if tokenizer.next.type == "EOL" {
+        return VarDec(value: variableName, children: [])
+      } else if tokenizer.next.type == "ASSIGN" {
         tokenizer.selectNext()
         let expression = parseBoolExpression(symbolTable: symbolTable)
-        return VarDecAndAssign(value: variableName, children: [expression])
-      } else {
-        return VarDec(value: variableName, children: [])
+        return VarDec(value: variableName, children: [expression])
       }
     }
     writeStderrAndExit("Invalid statement")
